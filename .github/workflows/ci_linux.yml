@@ -35,7 +35,6 @@ jobs:
   perf_sample:
     name: Perf sampling (perf -> flamegraph)
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' }}
     needs: build_and_test
     steps:
         - name: Checkout repository
