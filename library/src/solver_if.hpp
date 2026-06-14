@@ -10,11 +10,11 @@
 #pragma once
 
 #include <api/dds.h>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <memory>
 
 auto solve_board_internal(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   const int target,
   const int solutions,
@@ -22,13 +22,13 @@ auto solve_board_internal(
   FutureTricks * futp) -> int;
 
 auto solve_same_board(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   FutureTricks * futp,
   const int hint) -> int;
 
 auto analyse_later_board(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const int leadHand,
   MoveType const * move,
   const int hint,

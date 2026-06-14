@@ -15,16 +15,16 @@
 #include <later_tricks.hpp>
 #include <quick_tricks.hpp>
 #include <lookup_tables/lookup_tables.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <system/timer_list.hpp>
 #include <trans_table/trans_table.hpp>
 
 // Internal ctx-enabled variants (forward declarations)
-static bool ab_search_0_ctx(Pos * posPoint, int target, int depth, SolverContext& ctx);
-static bool ab_search_1_ctx(Pos * posPoint, int target, int depth, SolverContext& ctx);
-static bool ab_search_2_ctx(Pos * posPoint, int target, int depth, SolverContext& ctx);
-static bool ab_search_3_ctx(Pos * posPoint, int target, int depth, SolverContext& ctx);
-EvalType evaluate_with_context(Pos const * posPoint, int trump, SolverContext& ctx);
+static bool ab_search_0_ctx(Pos * posPoint, int target, int depth, SolverContextImpl& ctx);
+static bool ab_search_1_ctx(Pos * posPoint, int target, int depth, SolverContextImpl& ctx);
+static bool ab_search_2_ctx(Pos * posPoint, int target, int depth, SolverContextImpl& ctx);
+static bool ab_search_3_ctx(Pos * posPoint, int target, int depth, SolverContextImpl& ctx);
+EvalType evaluate_with_context(Pos const * posPoint, int trump, SolverContextImpl& ctx);
 
 // ctx-enabled helpers to keep search-state access behind the facade
 static void make_3_ctx(
@@ -32,13 +32,13 @@ static void make_3_ctx(
   unsigned short trickCards[DDS_SUITS],
   const int depth,
   MoveType const * mply,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 static void undo_0_ctx(
   Pos * posPoint,
   const int depth,
   const MoveType& mply,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 
 void make_3_simple(
@@ -46,7 +46,7 @@ void make_3_simple(
   unsigned short trickCards[DDS_SUITS],
   const int depth,
   MoveType const * mply,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 void undo_0(
   Pos * posPoint,
@@ -82,7 +82,7 @@ bool ab_search(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   /* posPoint points to the current look-ahead position,
      target is number of tricks to take for the player,
@@ -174,7 +174,7 @@ bool ab_search_0(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   return ab_search_0_ctx(posPoint, target, depth, ctx);
 }
@@ -184,7 +184,7 @@ static bool ab_search_0_ctx(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   /* posPoint points to the current look-ahead position,
      target is number of tricks to take for the player,
@@ -482,7 +482,7 @@ bool ab_search_1(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   return ab_search_1_ctx(posPoint, target, depth, ctx);
 }
@@ -491,7 +491,7 @@ static bool ab_search_1_ctx(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   ThreadData* thrp = ctx.thread_ptr();
   int trump = thrp->trump;
@@ -578,7 +578,7 @@ bool ab_search_2(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   return ab_search_2_ctx(posPoint, target, depth, ctx);
 }
@@ -587,7 +587,7 @@ static bool ab_search_2_ctx(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
 #ifdef DDS_AB_STATS
   ThreadData* thrp = ctx.thread_ptr();
@@ -667,7 +667,7 @@ bool ab_search_3(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   return ab_search_3_ctx(posPoint, target, depth, ctx);
 }
@@ -676,7 +676,7 @@ static bool ab_search_3_ctx(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   /* This is a specialized AB function for hand_rel_first == 3. */
 
@@ -828,7 +828,7 @@ void make_3(
   unsigned short trickCards[DDS_SUITS],
   const int depth,
   MoveType const * mply,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   ThreadData* thrp = ctx.thread_ptr();
   int firstHand = posPoint->first[depth];
@@ -894,7 +894,7 @@ static void make_3_ctx(
   unsigned short trickCards[DDS_SUITS],
   const int depth,
   MoveType const * mply,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   ThreadData* thrp = ctx.thread_ptr();
   int firstHand = posPoint->first[depth];
@@ -959,7 +959,7 @@ void make_3_simple(
   unsigned short trickCards[DDS_SUITS],
   const int depth,
   MoveType const * mply,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   const TrickDataType& data = ctx.move_gen().get_trick_data((depth + 3) >> 2);
 
@@ -1022,7 +1022,7 @@ static void undo_0_ctx(
   Pos * posPoint,
   const int depth,
   const MoveType& mply,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   // No timers here; macros not used in this helper
   int h = HAND_ID(posPoint->first[depth], 3);
@@ -1113,7 +1113,7 @@ void undo_3(
 EvalType evaluate_with_context(
   Pos const * posPoint,
   const int trump,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   int s, h, hmax = 0, count = 0, k = 0;
   unsigned short rmax = 0;

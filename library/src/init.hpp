@@ -11,13 +11,13 @@
 
 #include <api/dds.h>
 #include <system/memory.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <memory>
 
 
 void SetDeal(const std::shared_ptr<ThreadData>& thrp);
 
-void SetDealTables(SolverContext& ctx);
+void SetDealTables(SolverContextImpl& ctx);
 
 void InitWinners(
   const Deal& dl,

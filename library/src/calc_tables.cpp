@@ -31,7 +31,7 @@ auto calc_all_boards_n(
 
 
 auto calc_single_common_internal(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards const& bds,
   SolvedBoards& solved,
   const int bno) -> int
@@ -40,7 +40,7 @@ auto calc_single_common_internal(
   Deal deal = bds.deals[bno];  // Make a local copy
   deal.first = 0;
 
-  int res = solve_board(
+  int res = solve_board_internal(
                 ctx,
                 deal,
                 bds.target[bno],
@@ -55,7 +55,7 @@ auto calc_single_common_internal(
   else
     return res;
 
-  // Reuse the same SolverContext (including ThreadData and TransTable)
+  // Reuse the same SolverContextImpl (including ThreadData and TransTable)
   // for subsequent same-board solves to ensure all declarers on the same
   // board share the same transposition table state, which is important
   // for calculation consistency and fixes a previous consistency bug.
@@ -77,7 +77,7 @@ auto calc_single_common_internal(
 
 
 auto calc_all_boards_n(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards * bop,
   SolvedBoards * solvedp) -> int
 {
@@ -126,7 +126,7 @@ auto calc_all_boards_n(
   int err = RETURN_NO_FAULT;
   if (nthreads <= 1)
   {
-    SolverContext ctx;
+    SolverContextImpl ctx;
     for (int bno = 0; bno < n; ++bno)
     {
       err = calc_single_common_internal(ctx, *bop, *solvedp, bno);
@@ -136,7 +136,7 @@ auto calc_all_boards_n(
   }
   else
   {
-    std::vector<SolverContext> contexts(static_cast<unsigned>(nthreads));
+    std::vector<SolverContextImpl> contexts(static_cast<unsigned>(nthreads));
     err = parallel_all_boards_n(n, nthreads,
       [&](const int worker_id, const int bno) -> int {
         return calc_single_common_internal(

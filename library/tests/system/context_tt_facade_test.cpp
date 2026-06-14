@@ -9,6 +9,8 @@
 #include <api/dll.h>
 #include "system/memory.hpp"
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
+#include <trans_table/trans_table.hpp>
 #include <api/dds.h>  // THREADMEM_* constants
 
 extern Memory memory;
@@ -23,13 +25,13 @@ TEST(SystemContextTTFacades, ResetAndResizeAreNoopsWithoutTT)
   // Create a context that owns its ThreadData for this test.
   SolverContext ctx;
   // Ensure no TT yet (construction is lazy until first use)
-  ASSERT_EQ(nullptr, ctx.maybe_trans_table());
+  ASSERT_EQ(nullptr, ctx.impl().maybe_trans_table());
   // Should not crash and should not create TT
   ctx.reset_for_solve();
   ctx.clear_tt();
   ctx.resize_tt(8, 16);
 
-  EXPECT_EQ(nullptr, ctx.maybe_trans_table());
+  EXPECT_EQ(nullptr, ctx.impl().maybe_trans_table());
 }
 
 TEST(SystemContextTTFacades, ResizeCreatesWhenExisting)
@@ -41,12 +43,12 @@ TEST(SystemContextTTFacades, ResizeCreatesWhenExisting)
   // Use owned context for the test
   SolverContext ctx;
   // Force create via trans_table()
-  auto* tt = ctx.trans_table();
+  auto* tt = ctx.impl().trans_table();
   ASSERT_NE(nullptr, tt);
 
   // Resize should apply immediately and keep TT alive
   ctx.resize_tt(8, 16);
-  EXPECT_NE(nullptr, ctx.maybe_trans_table());
+  EXPECT_NE(nullptr, ctx.impl().maybe_trans_table());
 }
 
 TEST(SystemContextTTFacades, Lifecycle_LookupAddClearDispose)
@@ -58,7 +60,7 @@ TEST(SystemContextTTFacades, Lifecycle_LookupAddClearDispose)
   SolverContext ctx;
 
   // Create TT and perform an initial lookup (expect miss)
-  auto* tt = ctx.trans_table();
+  auto* tt = ctx.impl().trans_table();
   ASSERT_NE(nullptr, tt);
 
   // Ensure TT internal roots are initialized before Lookup/Add for the test.
@@ -99,5 +101,5 @@ TEST(SystemContextTTFacades, Lifecycle_LookupAddClearDispose)
 
   // Dispose destroys the TT instance from the registry
   ctx.dispose_trans_table();
-  EXPECT_EQ(nullptr, ctx.maybe_trans_table());
+  EXPECT_EQ(nullptr, ctx.impl().maybe_trans_table());
 }

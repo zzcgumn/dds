@@ -10,7 +10,7 @@
 #pragma once
 
 #include <api/dds.h>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 
 bool LaterTricksMIN(
@@ -19,7 +19,7 @@ bool LaterTricksMIN(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 bool LaterTricksMAX(
   Pos& tpos,
@@ -27,4 +27,4 @@ bool LaterTricksMAX(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);

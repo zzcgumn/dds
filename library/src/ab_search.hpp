@@ -10,37 +10,37 @@
 #pragma once
 
 #include <api/dds.h>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 auto ab_search(
     Pos* pos_point,
     int target,
     int depth,
-    SolverContext& ctx) -> bool;
+    SolverContextImpl& ctx) -> bool;
 
 auto ab_search_0(
     Pos* pos_point,
     int target,
     int depth,
-    SolverContext& ctx) -> bool;
+    SolverContextImpl& ctx) -> bool;
 
 auto ab_search_1(
     Pos* pos_point,
     int target,
     int depth,
-    SolverContext& ctx) -> bool;
+    SolverContextImpl& ctx) -> bool;
 
 auto ab_search_2(
     Pos* pos_point,
     int target,
     int depth,
-    SolverContext& ctx) -> bool;
+    SolverContextImpl& ctx) -> bool;
 
 auto ab_search_3(
     Pos* pos_point,
     int target,
     int depth,
-    SolverContext& ctx) -> bool;
+    SolverContextImpl& ctx) -> bool;
 
 auto make_0(
     Pos* pos_point,
@@ -62,10 +62,10 @@ auto make_3(
     unsigned short trick_cards[DDS_SUITS],
     int depth,
     const MoveType* mply,
-    SolverContext& ctx) -> void;
+    SolverContextImpl& ctx) -> void;
 
 // Evaluate terminal position using the provided context.
 auto evaluate_with_context(
     const Pos* pos_point,
     int trump,
-    SolverContext& ctx) -> EvalType;
+    SolverContextImpl& ctx) -> EvalType;

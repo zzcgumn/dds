@@ -7,6 +7,7 @@
 
 #include <api/dds_api.hpp>
 #include <api/calc_par.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 // Creation
 DLLEXPORT DDS_SOLVER_CTX dds_create_solvercontext_default()
@@ -56,12 +57,12 @@ DLLEXPORT void dds_reset_best_moves_lite(DDS_SOLVER_CTX ctx)
 // Utilities – simple logging passthrough
 DLLEXPORT void dds_log_append(DDS_SOLVER_CTX ctx, const char* msg)
 {
-	ctx->utilities().log_append(std::string(msg ? msg : ""));
+	ctx->impl().utilities().log_append(std::string(msg ? msg : ""));
 }
 
 DLLEXPORT void dds_log_clear(DDS_SOLVER_CTX ctx)
 {
-	ctx->utilities().log_clear();
+	ctx->impl().utilities().log_clear();
 }
 
 DLLEXPORT auto dds_solve_board(DDS_SOLVER_CTX ctx, const Deal& dl, int target, int solutions, int mode, FutureTricks* futp) -> int

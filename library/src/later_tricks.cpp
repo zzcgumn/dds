@@ -10,7 +10,7 @@
 #include <algorithm>
 
 #include "later_tricks.hpp"
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 
 /**
@@ -33,7 +33,7 @@ bool LaterTricksMIN(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   
   const bool depth_ok = (depth >= 0 && depth < 50);
@@ -205,7 +205,7 @@ bool LaterTricksMAX(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   
   const bool depth_ok = (depth >= 0 && depth < 50);

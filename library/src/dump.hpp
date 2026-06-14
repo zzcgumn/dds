@@ -11,7 +11,7 @@
 
 #include <api/dds.h>
 #include <moves/moves.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 int DumpInput(
   const int errCode,
@@ -47,7 +47,7 @@ void DumpStored(
 void DumpStored(
   std::ofstream& fout,
   const Pos& tpos,
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const NodeCards& node,
   const int target,
   const int depth);

@@ -1,5 +1,6 @@
 #include <solver_if.hpp>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 auto solve_board(
   SolverContext& ctx,
@@ -11,7 +12,7 @@ auto solve_board(
 {
   // Use ThreadData-attached TT so all contexts created in lower layers
   // observe the same table. No ownership adoption to avoid duplication.
-  return solve_board_internal(ctx, dl, target, solutions, mode, futp);
+  return solve_board_internal(ctx.impl(), dl, target, solutions, mode, futp);
 }
 
 auto SolveBoard(
