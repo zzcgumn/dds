@@ -2,8 +2,8 @@ load("//:CPPVARIABLES.bzl", "DDS_CPPOPTS", "DDS_LINKOPTS", "DDS_LOCAL_DEFINES", 
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 external_headers = [
-    "dds.h",
-    "dds.hpp",
+    "include/dds.h",
+    "include/dds.hpp",
 ]
 
 cc_library(
@@ -40,6 +40,20 @@ filegroup(
     srcs = external_headers,
 )
 
+# Exposes include/dds.h and include/dds.hpp as <dds/dds.h> / <dds/dds.hpp>.
+# strip_include_prefix strips the "include/" path component before include_prefix adds "dds/".
+cc_library(
+    name = "dds_umbrella_headers",
+    hdrs = external_headers,
+    strip_include_prefix = "include",
+    include_prefix = "dds",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//library/src/include/api:api_definitions",
+        "//library/src/include/utility:constants",
+    ],
+)
+
 cc_library(
     name = "dds",
     srcs = ["//library/src:dds_sources"],
@@ -49,6 +63,7 @@ cc_library(
     linkopts = DDS_LINKOPTS,
     local_defines = DDS_LOCAL_DEFINES + DDS_SCHEDULER_DEFINE,
     visibility = ["//visibility:public"],
+    strip_include_prefix = "include",
     include_prefix = "dds",
     deps = [
         "//library/src/include/api:api_definitions",
@@ -76,9 +91,7 @@ filegroup(
 
 filegroup(
     name = "testable_dds_headers",
-    srcs = glob([
-        "*.hpp", "*.h",
-    ],),
+    srcs = glob(["*.hpp"]),
     visibility = [
         "//examples:__pkg__",
     ],
@@ -104,6 +117,7 @@ cc_library(
         "//library/tests/solve_board:__pkg__",
     ],
     deps = [
+        "//library/src:dds_umbrella_headers",
         "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
@@ -131,6 +145,7 @@ cc_library(
         "//library/tests/system:__pkg__",
     ],
     deps = [
+        "//library/src:dds_umbrella_headers",
         "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
@@ -157,6 +172,7 @@ cc_library(
         "//library/tests/system:__pkg__",
     ],
     deps = [
+        "//library/src:dds_umbrella_headers",
         "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
