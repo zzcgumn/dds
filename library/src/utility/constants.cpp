@@ -7,7 +7,7 @@
    See LICENSE and README.
 */
 
-#include "constants.h"
+#include <utility/constants.h>
 
 /// Left-hand opponent array: lho[hand] gives the hand sitting to hand's left.
 /// Bridge hand positions: 0=North, 1=East, 2=South, 3=West (compass orientation)
