@@ -10,7 +10,10 @@ let package = Package(
         .target(
             name: "dds",
             path: "library/src",
-            publicHeadersPath: "include"
+            publicHeadersPath: "include",
+            cxxSettings: [
+                .headerSearchPath("."),
+            ]
         ),
     ],
     cxxLanguageStandard: .cxx20
