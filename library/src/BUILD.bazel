@@ -2,8 +2,8 @@ load("//:CPPVARIABLES.bzl", "DDS_CPPOPTS", "DDS_LINKOPTS", "DDS_LOCAL_DEFINES")
 load("@rules_cc//cc:defs.bzl", "cc_library")
 
 external_headers = [
-    "include/dds.h",
-    "include/dds.hpp",
+    "dds.h",
+    "dds.hpp",
 ]
 
 filegroup(
@@ -19,12 +19,10 @@ filegroup(
     srcs = external_headers,
 )
 
-# Exposes include/dds.h and include/dds.hpp as <dds/dds.h> / <dds/dds.hpp>.
-# strip_include_prefix strips the "include/" path component before include_prefix adds "dds/".
+# Exposes dds.h and dds.hpp as <dds/dds.h> / <dds/dds.hpp> for Bazel consumers.
 cc_library(
     name = "dds_umbrella_headers",
     hdrs = external_headers,
-    strip_include_prefix = "include",
     include_prefix = "dds",
     visibility = ["//visibility:public"],
     deps = [
@@ -42,7 +40,6 @@ cc_library(
     linkopts = DDS_LINKOPTS,
     local_defines = DDS_LOCAL_DEFINES,
     visibility = ["//visibility:public"],
-    strip_include_prefix = "include",
     include_prefix = "dds",
     deps = [
         "//library/src/include/api:api_definitions",
