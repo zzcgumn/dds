@@ -4,14 +4,15 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "solver_context",
     srcs = ["solver_context.cpp"],
-    hdrs = ["solver_context.hpp"],
+    hdrs = ["solver_context_impl.hpp"],
     visibility = ["//visibility:public"],
     includes = ["."],
     include_prefix = "solver_context",
     deps = [
-        "//library/src/system",               # ThreadData.h, Utilities
-        "//library/src/api:api_definitions",  # <api/dds.h>
-        "//library/src/trans_table",          # TT headers
+        "//library/src/system",                          # ThreadData.h, Utilities
+        "//library/src/api:api_definitions",             # <api/dds.h>
+        "//library/src/trans_table",                     # TT headers
+        "//library/src/include/solver_context",          # public SolverContext wrapper
     ],
     copts = DDS_CPPOPTS,
     linkopts = DDS_LINKOPTS,
@@ -21,7 +22,7 @@ cc_library(
 cc_library(
     name = "solver_context_log",
     srcs = ["solver_context.cpp"],
-    hdrs = ["solver_context.hpp"],
+    hdrs = ["solver_context_impl.hpp"],
     visibility = ["//visibility:public"],
     includes = ["."],
     include_prefix = "solver_context",
@@ -29,6 +30,7 @@ cc_library(
         "//library/src/system",
         "//library/src/api:api_definitions",
         "//library/src/trans_table",
+        "//library/src/include/solver_context",
     ],
     copts = DDS_CPPOPTS,
     linkopts = DDS_LINKOPTS,
@@ -38,7 +40,7 @@ cc_library(
 cc_library(
     name = "solver_context_stats",
     srcs = ["solver_context.cpp"],
-    hdrs = ["solver_context.hpp"],
+    hdrs = ["solver_context_impl.hpp"],
     visibility = ["//visibility:public"],
     includes = ["."],
     include_prefix = "solver_context",
@@ -46,6 +48,7 @@ cc_library(
         "//library/src/system",
         "//library/src/api:api_definitions",
         "//library/src/trans_table",
+        "//library/src/include/solver_context",
     ],
     copts = DDS_CPPOPTS,
     linkopts = DDS_LINKOPTS,

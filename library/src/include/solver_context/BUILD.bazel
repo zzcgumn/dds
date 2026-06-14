@@ -1,0 +1,8 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "solver_context",
+    hdrs = ["solver_context.hpp"],
+    include_prefix = "solver_context",
+    visibility = ["//visibility:public"],
+)
