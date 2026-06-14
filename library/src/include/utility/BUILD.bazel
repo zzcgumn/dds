@@ -1,0 +1,8 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+cc_library(
+    name = "constants",
+    hdrs = ["constants.h", "debug.h"],
+    include_prefix = "utility",
+    visibility = ["//visibility:public"],
+)

@@ -6,16 +6,14 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 cc_library(
     name = "constants",
     srcs = ["constants.cpp"],
-    hdrs = ["constants.h", "debug.h"],
     copts = DDS_CPPOPTS,
     linkopts = DDS_LINKOPTS,
     local_defines = DDS_LOCAL_DEFINES,
-    include_prefix = "utility",
     visibility = [
         "//library/src:__pkg__",
          "//library/src:__subpackages__",
          "//library/tests:__subpackages__"
     ],
-    deps = [],
+    deps = ["//library/src/include/utility:constants"],
 )
 
