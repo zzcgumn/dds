@@ -11,7 +11,7 @@
 
 #include <api/dds.h>
 #include <system/memory.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 
 int QuickTricks(
@@ -21,7 +21,7 @@ int QuickTricks(
   const int target,
   const int trump,
   bool& result,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 bool QuickTricksSecondHand(
   Pos& tpos,
@@ -29,4 +29,4 @@ bool QuickTricksSecondHand(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);

@@ -11,7 +11,7 @@
 
 #include "quick_tricks.hpp"
 #include <lookup_tables/lookup_tables.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 
 int QtricksLeadHandNT(
@@ -63,7 +63,7 @@ int QuickTricksPartnerHand(
   const int commSuit,
   const int commRank,
   int& res,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 int QuickTricksPartnerHandTrump(
   const int hand,
@@ -81,7 +81,7 @@ int QuickTricksPartnerHandTrump(
   const int commSuit,
   const int commRank,
   int& res,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 int QuickTricksPartnerHandNT(
   const int hand,
@@ -97,7 +97,7 @@ int QuickTricksPartnerHandNT(
   const int commSuit,
   const int commRank,
   int& res,
-  SolverContext& ctx);
+  SolverContextImpl& ctx);
 
 
 /**
@@ -122,7 +122,7 @@ int QuickTricks(
   const int target,
   const int trump,
   bool& result,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   int suit, commRank = 0, commSuit = -1;
   int res;
@@ -902,7 +902,7 @@ int QuickTricksPartnerHandTrump(
   const int commSuit,
   const int commRank,
   int& res,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   /* res=0 Continue with same suit.
      res=1 Cutoff.
@@ -1038,7 +1038,7 @@ int QuickTricksPartnerHandNT(
   const int commSuit,
   const int commRank,
   int& res,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   res = 1;
   int qt = qtricks;
@@ -1133,7 +1133,7 @@ bool QuickTricksSecondHand(
   const int depth,
   const int target,
   const int trump,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   if (depth == ctx.search().ini_depth())
     return false;

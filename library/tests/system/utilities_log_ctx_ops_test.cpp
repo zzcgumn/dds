@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include "system/memory.hpp"
 #include <api/dds.h>
 
@@ -23,7 +24,7 @@ TEST(UtilitiesLogCtxOpsNoDefine, NoEntriesWhenDisabled)
   SolverContext ctx;
 
   // Start from a clean log buffer
-  ctx.utilities().log_clear();
+  ctx.impl().utilities().log_clear();
 
   // Exercise the context operations (should not produce log entries by default)
   ctx.reset_for_solve();
@@ -31,5 +32,5 @@ TEST(UtilitiesLogCtxOpsNoDefine, NoEntriesWhenDisabled)
   ctx.resize_tt(8, 16);
   ctx.clear_tt();
 
-  EXPECT_TRUE(ctx.utilities().log_buffer().empty());
+  EXPECT_TRUE(ctx.impl().utilities().log_buffer().empty());
 }

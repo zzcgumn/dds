@@ -13,7 +13,7 @@
 #include <sstream>
 
 #include "dump.hpp"
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <trans_table/trans_table.hpp>
 
 
@@ -225,7 +225,7 @@ std::string DumpTopHeader(
   const int printMode)
 {
   // Use facade to read search-state safely (caller provides shared_ptr)
-  SolverContext ctx{ thrp };
+  SolverContextImpl ctx{ thrp };
   std::string stext;
   if (printMode == 0)
   {
@@ -326,7 +326,7 @@ void DumpTopLevel(
   const int printMode)
 {
   const Pos& tpos = thrp->lookAheadPos;
-  SolverContext ctx{ thrp };
+  SolverContextImpl ctx{ thrp };
 
   fout << DumpTopHeader(thrp, tricks, lower, upper, printMode) << "\n";
   fout << PrintDeal(tpos.rank_in_suit, 16);

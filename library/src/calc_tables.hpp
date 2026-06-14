@@ -12,7 +12,7 @@
 #include <vector>
 
 #include <api/dll.h>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 
 
 /**
@@ -21,7 +21,7 @@
  * @return 1 on success, error code otherwise
  */
 auto calc_single_common_internal(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards const& bds,
   SolvedBoards& solved,
   const int bno) -> int;
@@ -37,7 +37,7 @@ auto calc_single_common_internal(
  * @return Error code
  */
 auto calc_all_boards_n(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards * bop,
   SolvedBoards * solvedp) -> int;
 

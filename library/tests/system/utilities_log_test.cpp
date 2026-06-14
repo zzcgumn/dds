@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include "system/memory.hpp"
 #include <api/dds.h>  // THREADMEM_* defaults
 
@@ -23,11 +24,11 @@ TEST(UtilitiesLogTest, NoLogWithoutDefine)
   SolverContext ctx;
 
   // Ensure clean start
-  ctx.utilities().log_clear();
+  ctx.impl().utilities().log_clear();
 
   // Create TT and dispose it; without define there should be no logs
-  (void)ctx.trans_table();
+  (void)ctx.impl().trans_table();
   ctx.dispose_trans_table();
 
-  EXPECT_TRUE(ctx.utilities().log_buffer().empty());
+  EXPECT_TRUE(ctx.impl().utilities().log_buffer().empty());
 }

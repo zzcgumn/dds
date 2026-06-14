@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include "system/memory.hpp"
 #include <api/dds.h>
 
@@ -23,7 +24,7 @@ TEST(UtilitiesLogCtxOpsWithDefine, EmitsCtxAndTTOps)
   SolverContext ctx;
 
   // Start from a clean log buffer
-  ctx.utilities().log_clear();
+  ctx.impl().utilities().log_clear();
 
   // Exercise the newly logged operations
   ctx.reset_for_solve();
@@ -31,7 +32,7 @@ TEST(UtilitiesLogCtxOpsWithDefine, EmitsCtxAndTTOps)
   ctx.resize_tt(8, 16);
   ctx.clear_tt();
 
-  const auto& logs = ctx.utilities().log_buffer();
+  const auto& logs = ctx.impl().utilities().log_buffer();
   // We expect at least the four entries we just invoked
   ASSERT_GE(logs.size(), 4u);
 
