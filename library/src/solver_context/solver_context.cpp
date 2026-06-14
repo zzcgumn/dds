@@ -1,4 +1,5 @@
-#include "solver_context.hpp"
+#include "solver_context_impl.hpp"
+#include <solver_context/solver_context.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -28,7 +29,7 @@ std::string next_debug_file_suffix()
 
 }  // namespace
 
-void SolverContext::bind_thread_data()
+void SolverContextImpl::bind_thread_data()
 {
   // Ensure persistent facades like SearchContext see the bound ThreadData.
   search_.set_thread(thr_);
@@ -43,10 +44,14 @@ void SolverContext::bind_thread_data()
   }
 }
 
+// ============================================================
+// SolverContextImpl implementations
+// ============================================================
+
 // Owned-ThreadData constructor: allocate ThreadData as a member of the
-// SolverContext so callers can create a context at the top of the stack
+// SolverContextImpl so callers can create a context at the top of the stack
 // and pass it down without a separate per-thread lookup.
-SolverContext::SolverContext(SolverConfig cfg)
+SolverContextImpl::SolverContextImpl(SolverConfig cfg)
   : cfg_(cfg), owns_thread_data_(true)
 {
   // Create an owned ThreadData instance and keep it in thr_.
@@ -54,16 +59,16 @@ SolverContext::SolverContext(SolverConfig cfg)
   bind_thread_data();
 }
 
-auto SolverContext::trans_table() const -> TransTable*
+auto SolverContextImpl::trans_table() const -> TransTable*
 {
   // Delegate to per-context SearchContext member (lazy creation inside).
-  return const_cast<SolverContext*>(this)->search_.trans_table();
+  return const_cast<SolverContextImpl*>(this)->search_.trans_table();
 }
 
 // Trivial accessors and disposal helpers are now inline in the header.
 // The lazy TT creator (large body) remains out-of-line.
 
-auto SolverContext::SearchContext::trans_table() -> TransTable* {
+auto SolverContextImpl::SearchContext::trans_table() -> TransTable* {
   if (tt_) return tt_.get();
   // Require owner (for config and utilities). If missing, fall back
   // to Large with built-in defaults.
@@ -128,12 +133,12 @@ auto SolverContext::SearchContext::trans_table() -> TransTable* {
   return tt_.get();
 }
 
-auto SolverContext::maybe_trans_table() const -> TransTable*
+auto SolverContextImpl::maybe_trans_table() const -> TransTable*
 {
   return search_.maybe_trans_table();
 }
 
-auto SolverContext::dispose_trans_table() const -> void
+auto SolverContextImpl::dispose_trans_table() const -> void
 {
 #ifdef DDS_UTILITIES_LOG
     // Append a tiny debug entry indicating TT disposal.
@@ -143,13 +148,13 @@ auto SolverContext::dispose_trans_table() const -> void
     utilities().util().stats().tt_disposes++;
 #endif
   // Dispose the member-owned TT (if any)
-  const_cast<SolverContext*>(this)->search_.dispose_trans_table();
+  const_cast<SolverContextImpl*>(this)->search_.dispose_trans_table();
 }
 
 // Defaulted destructor defined out-of-line so destruction of the
 // owned std::shared_ptr<ThreadData> happens where ThreadData is a
 // complete type.
-SolverContext::~SolverContext()
+SolverContextImpl::~SolverContextImpl()
 {
   if (!thr_)
     return;
@@ -161,7 +166,7 @@ SolverContext::~SolverContext()
     thr_->close_debug_files();
 }
 
-auto SolverContext::reset_for_solve() const -> void
+auto SolverContextImpl::reset_for_solve() const -> void
 {
 #ifdef DDS_UTILITIES_LOG
   {
@@ -195,7 +200,7 @@ auto SolverContext::reset_for_solve() const -> void
   }
 }
 
-auto SolverContext::clear_tt() const -> void
+auto SolverContextImpl::clear_tt() const -> void
 {
 #ifdef DDS_UTILITIES_LOG
   utilities().log_append("tt:clear");
@@ -204,7 +209,7 @@ auto SolverContext::clear_tt() const -> void
     tt->return_all_memory();
 }
 
-auto SolverContext::resize_tt(int defMB, int maxMB) const -> void
+auto SolverContextImpl::resize_tt(int defMB, int maxMB) const -> void
 {
 #ifdef DDS_UTILITIES_LOG
   {
@@ -221,7 +226,7 @@ auto SolverContext::resize_tt(int defMB, int maxMB) const -> void
   }
 }
 
-auto SolverContext::configure_tt(TTKind kind, int defMB, int maxMB) -> void
+auto SolverContextImpl::configure_tt(TTKind kind, int defMB, int maxMB) -> void
 {
   // Apply environment limit if present to preserve existing behavior.
   if (const char* s = std::getenv("DDS_TT_LIMIT_MB")) {
@@ -253,7 +258,7 @@ auto SolverContext::configure_tt(TTKind kind, int defMB, int maxMB) -> void
 }
 
 // Lightweight reset matching legacy ResetBestMoves semantics.
-auto SolverContext::reset_best_moves_lite() const -> void
+auto SolverContextImpl::reset_best_moves_lite() const -> void
 {
 #ifdef DDS_UTILITIES_LOG
   utilities().log_append("ctx:reset_best_moves_lite");
@@ -288,7 +293,7 @@ auto ThreadMemoryUsed() -> double
 // --- MoveGenContext out-of-line definitions ---
 // No TLS allocator shim required: move generation now runs without a global allocator hook.
 
-auto SolverContext::MoveGenContext::move_gen_0(
+auto SolverContextImpl::MoveGenContext::move_gen_0(
   const int tricks,
   const Pos& tpos,
   const MoveType& bestMove,
@@ -299,7 +304,7 @@ auto SolverContext::MoveGenContext::move_gen_0(
   return rc;
 }
 
-auto SolverContext::MoveGenContext::move_gen_123(
+auto SolverContextImpl::MoveGenContext::move_gen_123(
   const int tricks,
   const int relHand,
   const Pos& tpos) -> int
@@ -308,7 +313,7 @@ auto SolverContext::MoveGenContext::move_gen_123(
   return rc;
 }
 
-auto SolverContext::MoveGenContext::purge(
+auto SolverContextImpl::MoveGenContext::purge(
   const int tricks,
   const int relHand,
   const MoveType forbiddenMoves[]) -> void
@@ -316,7 +321,7 @@ auto SolverContext::MoveGenContext::purge(
   thr_->moves.Purge(tricks, relHand, forbiddenMoves);
 }
 
-auto SolverContext::MoveGenContext::make_next(
+auto SolverContextImpl::MoveGenContext::make_next(
   const int trick,
   const int relHand,
   const unsigned short win_ranks[]) -> const MoveType*
@@ -324,40 +329,40 @@ auto SolverContext::MoveGenContext::make_next(
   return thr_->moves.MakeNext(trick, relHand, win_ranks);
 }
 
-auto SolverContext::MoveGenContext::make_next_simple(
+auto SolverContextImpl::MoveGenContext::make_next_simple(
   const int trick,
   const int relHand) -> const MoveType*
 {
   return thr_->moves.MakeNextSimple(trick, relHand);
 }
 
-auto SolverContext::MoveGenContext::get_length(
+auto SolverContextImpl::MoveGenContext::get_length(
   const int trick,
   const int relHand) const -> int
 {
   return thr_->moves.GetLength(trick, relHand);
 }
 
-auto SolverContext::MoveGenContext::rewind(
+auto SolverContextImpl::MoveGenContext::rewind(
   const int tricks,
   const int relHand) -> void
 {
   thr_->moves.Rewind(tricks, relHand);
 }
 
-auto SolverContext::MoveGenContext::register_hit(
+auto SolverContextImpl::MoveGenContext::register_hit(
   const int tricks,
   const int relHand) -> void
 {
   thr_->moves.RegisterHit(tricks, relHand);
 }
 
-auto SolverContext::MoveGenContext::get_trick_data(const int tricks) -> const TrickDataType&
+auto SolverContextImpl::MoveGenContext::get_trick_data(const int tricks) -> const TrickDataType&
 {
   return thr_->moves.GetTrickData(tricks);
 }
 
-auto SolverContext::MoveGenContext::make_specific(
+auto SolverContextImpl::MoveGenContext::make_specific(
   const MoveType& mply,
   const int trick,
   const int relHand) -> void
@@ -365,19 +370,19 @@ auto SolverContext::MoveGenContext::make_specific(
   thr_->moves.MakeSpecific(mply, trick, relHand);
 }
 
-auto SolverContext::MoveGenContext::trick_to_text(const int trick) const -> std::string
+auto SolverContextImpl::MoveGenContext::trick_to_text(const int trick) const -> std::string
 {
   return thr_->moves.TrickToText(trick);
 }
 
-auto SolverContext::MoveGenContext::reinit(
+auto SolverContextImpl::MoveGenContext::reinit(
   const int tricks,
   const int leadHand) -> void
 {
   thr_->moves.Reinit(tricks, leadHand);
 }
 
-auto SolverContext::MoveGenContext::init(
+auto SolverContextImpl::MoveGenContext::init(
   const int tricks,
   const int relStartHand,
   const int initialRanks[],
@@ -390,17 +395,75 @@ auto SolverContext::MoveGenContext::init(
                    rank_in_suit, trump, leadHand);
 }
 
-auto SolverContext::MoveGenContext::print_trick_stats(std::ofstream& fout) const -> void
+auto SolverContextImpl::MoveGenContext::print_trick_stats(std::ofstream& fout) const -> void
 {
   thr_->moves.PrintTrickStats(fout);
 }
 
-auto SolverContext::MoveGenContext::print_function_stats(std::ofstream& fout) const -> void
+auto SolverContextImpl::MoveGenContext::print_function_stats(std::ofstream& fout) const -> void
 {
   thr_->moves.PrintFunctionStats(fout);
 }
 
-auto SolverContext::MoveGenContext::print_trick_details(std::ofstream& fout) const -> void
+auto SolverContextImpl::MoveGenContext::print_trick_details(std::ofstream& fout) const -> void
 {
   thr_->moves.PrintTrickDetails(fout);
+}
+
+// ============================================================
+// SolverContext public wrapper implementations (pimpl)
+// ============================================================
+
+SolverContext::SolverContext(SolverConfig cfg)
+  : pimpl_(std::make_unique<SolverContextImpl>(cfg))
+{
+}
+
+SolverContext::SolverContext(SolverContext&&) noexcept = default;
+SolverContext& SolverContext::operator=(SolverContext&&) noexcept = default;
+SolverContext::~SolverContext() = default;
+
+auto SolverContext::config() const -> const SolverConfig&
+{
+  return pimpl_->config();
+}
+
+auto SolverContext::configure_tt(TTKind kind, int defMB, int maxMB) -> void
+{
+  pimpl_->configure_tt(kind, defMB, maxMB);
+}
+
+auto SolverContext::reset_for_solve() const -> void
+{
+  pimpl_->reset_for_solve();
+}
+
+auto SolverContext::reset_best_moves_lite() const -> void
+{
+  pimpl_->reset_best_moves_lite();
+}
+
+auto SolverContext::clear_tt() const -> void
+{
+  pimpl_->clear_tt();
+}
+
+auto SolverContext::resize_tt(int defMB, int maxMB) const -> void
+{
+  pimpl_->resize_tt(defMB, maxMB);
+}
+
+auto SolverContext::dispose_trans_table() const -> void
+{
+  pimpl_->dispose_trans_table();
+}
+
+auto SolverContext::impl() -> SolverContextImpl&
+{
+  return *pimpl_;
+}
+
+auto SolverContext::impl() const -> const SolverContextImpl&
+{
+  return *pimpl_;
 }
