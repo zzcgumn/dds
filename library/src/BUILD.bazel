@@ -33,7 +33,7 @@ cc_library(
     visibility = ["//visibility:public"],
     include_prefix = "dds",
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/heuristic_sorting",
@@ -84,7 +84,7 @@ cc_library(
         "//library/tests/solve_board:__pkg__",
     ],
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/heuristic_sorting",
@@ -110,7 +110,7 @@ cc_library(
         "//library/tests/system:__pkg__",
     ],
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/heuristic_sorting",
@@ -135,7 +135,7 @@ cc_library(
         "//library/tests/system:__pkg__",
     ],
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/utility:constants",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/heuristic_sorting",

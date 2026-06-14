@@ -17,5 +17,6 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//library/src/utility:constants",
+        "//library/src/include/solver_context:solver_context",
     ],
 )
