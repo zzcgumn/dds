@@ -12,7 +12,7 @@ cc_library(
         "test_utilities.hpp",
     ],
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/trans_table:testable_trans_table",
         "@googletest//:gtest",
     ],

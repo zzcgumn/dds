@@ -10,7 +10,7 @@ cc_library(
     include_prefix = "solver_context",
     deps = [
         "//library/src/system",                          # ThreadData.h, Utilities
-        "//library/src/api:api_definitions",             # <api/dds.h>
+        "//library/src/include/api:api_definitions",             # <api/dds.h>
         "//library/src/trans_table",                     # TT headers
         "//library/src/include/solver_context",          # public SolverContext wrapper
     ],
@@ -28,7 +28,7 @@ cc_library(
     include_prefix = "solver_context",
     deps = [
         "//library/src/system:system_util_log",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/trans_table",
         "//library/src/include/solver_context",
     ],
@@ -46,7 +46,7 @@ cc_library(
     include_prefix = "solver_context",
     deps = [
         "//library/src/system:system_util_stats",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/trans_table",
         "//library/src/include/solver_context",
     ],
