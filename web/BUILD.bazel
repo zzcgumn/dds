@@ -25,7 +25,7 @@ cc_binary(
     visibility = ["//web:__pkg__"],
     deps = [
         "//library/src:dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
     ],
 )
 
@@ -50,7 +50,7 @@ cc_test(
     local_defines = DDS_LOCAL_DEFINES + ["DDS_MVP_WASM_NO_MAIN"],
     deps = [
         "//library/src:dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "@googletest//:gtest_main",
     ],
 )
