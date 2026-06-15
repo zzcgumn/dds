@@ -18,7 +18,7 @@
 // SolverContextImpl so callers can create a context at the top of the stack
 // and pass it down without a separate per-thread lookup.
 SolverContextImpl::SolverContextImpl(SolverConfig cfg)
-  : thr_(nullptr), cfg_(cfg)
+  : cfg_(cfg)
 {
   // Create an owned ThreadData instance and keep it in thr_.
   thr_ = std::make_shared<ThreadData>();
