@@ -27,7 +27,7 @@ auto calc_all_boards_n(
 
 
 auto calc_single_common_internal(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards const& bds,
   SolvedBoards& solved,
   const int bno) -> int
@@ -36,7 +36,7 @@ auto calc_single_common_internal(
   Deal deal = bds.deals[bno];  // Make a local copy
   deal.first = 0;
 
-  int res = solve_board(
+  int res = solve_board_internal(
                 ctx,
                 deal,
                 bds.target[bno],
@@ -51,7 +51,7 @@ auto calc_single_common_internal(
   else
     return res;
 
-  // Reuse the same SolverContext (including ThreadData and TransTable)
+  // Reuse the same SolverContextImpl (including ThreadData and TransTable)
   // for subsequent same-board solves to ensure all declarers on the same
   // board share the same transposition table state, which is important
   // for calculation consistency and fixes a previous consistency bug.
@@ -73,7 +73,7 @@ auto calc_single_common_internal(
 
 
 auto calc_all_boards_n(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   Boards * bop,
   SolvedBoards * solvedp) -> int
 {
@@ -107,7 +107,7 @@ auto calc_all_boards_n(
   Boards * bop,
   SolvedBoards * solvedp) -> int
 {
-  SolverContext ctx;
+  SolverContextImpl ctx;
   return calc_all_boards_n(ctx, bop, solvedp);
 }
 

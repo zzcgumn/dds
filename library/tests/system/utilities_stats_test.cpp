@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include "system/memory.hpp"
 #include <api/dds.h>
 
@@ -21,12 +22,12 @@ TEST(UtilitiesStatsTest, CountersRemainZeroWithoutDefine)
 {
   ensure_thread();
   SolverContext ctx;
-  ctx.utilities().util().stats_reset();
+  ctx.impl().utilities().util().stats_reset();
 
-  (void)ctx.trans_table();
+  (void)ctx.impl().trans_table();
   ctx.dispose_trans_table();
 
-  const auto& st = ctx.utilities().util().stats();
+  const auto& st = ctx.impl().utilities().util().stats();
   EXPECT_EQ(0u, st.tt_creates);
   EXPECT_EQ(0u, st.tt_disposes);
 }

@@ -10,7 +10,7 @@
 #include "play_analyser.hpp"
 #include <solver_if.hpp>
 #include <pbn.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <system/scheduler.hpp>
 #include <system/system.hpp>
 
@@ -50,7 +50,7 @@ int STDCALL AnalysePlayBin(
   // transposition table) is reused for the initial solve and every subsequent
   // analyse_later_board call, so the hint-bounded incremental searches see a
   // warm TT -- see the analogous calc_dd_table fix (commit 27030ba).
-  SolverContext outer_ctx;
+  SolverContextImpl outer_ctx;
 
   MoveType move;
   FutureTricks fut;
@@ -58,7 +58,7 @@ int STDCALL AnalysePlayBin(
   int ret = solve_board_internal(outer_ctx, dl, -1, 1, 1, &fut);
   if (ret != RETURN_NO_FAULT)
     return ret;
-  SolverContext& ctx = outer_ctx;
+  SolverContextImpl& ctx = outer_ctx;
   const int ini_depth = ctx.search().ini_depth();
   const int numTricks = ((ini_depth + 3) >> 2) + 1;
   const int numCardsPlayed = ((48 - ini_depth) % 4) + 1;

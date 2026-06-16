@@ -49,7 +49,7 @@ cc_test(
     deps = [
         "//examples:hands",
         "//library/src:dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "@googletest//:gtest_main",
     ],
 )

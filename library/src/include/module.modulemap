@@ -1,0 +1,18 @@
+module dds {
+    // C++ API — primary entry points for consumers
+    header "dds.hpp"
+    header "dds/dds.hpp"
+    header "solver_context/solver_context.hpp"
+    header "api/solve_board.hpp"
+    header "api/calc_dd_table.hpp"
+    header "api/calc_par.hpp"
+
+    // C types required by the C++ API
+    header "api/dds.h"
+    header "api/dll.h"
+    header "api/portab.h"
+    header "api/PBN.h"
+    header "utility/constants.h"
+
+    export *
+}

@@ -6,6 +6,7 @@
 
 #include <gtest/gtest.h>
 #include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include "system/memory.hpp"
 #include <api/dds.h>
 
@@ -21,12 +22,12 @@ TEST(UtilitiesLogTestWithDefine, LogsPresentWhenEnabled)
 {
   ensure_thread();
   SolverContext ctx;
-  ctx.utilities().log_clear();
+  ctx.impl().utilities().log_clear();
 
-  (void)ctx.trans_table();
+  (void)ctx.impl().trans_table();
   ctx.dispose_trans_table();
 
-  const auto& logs = ctx.utilities().log_buffer();
+  const auto& logs = ctx.impl().utilities().log_buffer();
   ASSERT_GE(logs.size(), 1u);
   // First log must be tt:create|K|def|max where K in {S,L}
   EXPECT_TRUE(logs[0].rfind("tt:create|", 0) == 0);

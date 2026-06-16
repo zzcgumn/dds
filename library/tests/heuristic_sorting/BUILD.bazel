@@ -21,7 +21,7 @@ cc_test(
     copts = DDS_CPPOPTS,
     local_defines = DDS_LOCAL_DEFINES,
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/moves:moves",
         "@googletest//:gtest_main",
     ],
@@ -43,7 +43,7 @@ cc_test(
     srcs = ["minimal_weight_test.cpp"],
     deps = [
         "//library/src:testable_dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/heuristic_sorting:testable_heuristic_sorting",
         "@googletest//:gtest_main",
     ],

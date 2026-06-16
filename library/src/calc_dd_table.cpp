@@ -56,7 +56,7 @@ auto calc_dd_table(
     }
 
     // Call context-aware internal calculation
-    int res = calc_all_boards_n(ctx, &bo, &solved);
+    int res = calc_all_boards_n(ctx.impl(), &bo, &solved);
     if (res != RETURN_NO_FAULT)
         return res;
 

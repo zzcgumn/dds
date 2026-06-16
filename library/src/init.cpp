@@ -17,7 +17,7 @@
 #include <play_analyser.hpp>
 #include <solve_board.hpp>
 #include <lookup_tables/lookup_tables.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <system/scheduler.hpp>
 #include <system/system.hpp>
 #include <system/thread_mgr.hpp>
@@ -167,7 +167,7 @@ void CloseDebugFiles()
 {
   for (unsigned thrId = 0; thrId < memory.NumThreads(); thrId++)
   {
-  SolverContext tmp_ctx;
+  SolverContextImpl tmp_ctx;
   [[maybe_unused]] auto thrp = tmp_ctx.thread();
   thrp->close_debug_files();
   }
@@ -210,7 +210,7 @@ void SetDeal(
 
 
 void SetDealTables(
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
 {
   auto thrp = ctx.thread();
   unsigned int topBitRank = 1;

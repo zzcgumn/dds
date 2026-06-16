@@ -13,7 +13,7 @@
 #include "solver_if.hpp"
 #include <api/solve_board.hpp>
 #include <lookup_tables/lookup_tables.hpp>
-#include <solver_context/solver_context.hpp>
+#include <solver_context/solver_context_impl.hpp>
 #include <system/scheduler.hpp>
 #include <system/system.hpp>
 #include <system/timer_list.hpp>
@@ -30,7 +30,7 @@ auto board_range_checks(
   const int mode) -> int;
 
 auto board_value_checks(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   const int target,
   const int solutions,
@@ -49,14 +49,14 @@ bool (* AB_ptr_list[DDS_HANDS])(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
   = { ab_search, ab_search_1, ab_search_2, ab_search_3 };
 
 bool (* AB_ptr_trace_list[DDS_HANDS])(
   Pos * posPoint,
   const int target,
   const int depth,
-  SolverContext& ctx)
+  SolverContextImpl& ctx)
   = { ab_search_0, ab_search_1, ab_search_2, ab_search_3 };
 
 void (* Make_ptr_list[3])(
@@ -74,12 +74,12 @@ int STDCALL SolveBoard(
   FutureTricks * futp,
   [[maybe_unused]] int thrId)
 {
-  SolverContext outer_ctx;
-  return solve_board(outer_ctx, dl, target, solutions, mode, futp);
+  SolverContextImpl outer_ctx;
+  return solve_board_internal(outer_ctx, dl, target, solutions, mode, futp);
 }
 
 auto solve_board_internal(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   const int target,
   const int solutions,
@@ -648,7 +648,7 @@ SOLVER_STATS:
   }
 #endif
 
-// Diagnostics are routed via the SolverContext MoveGen facade.
+// Diagnostics are routed via the SolverContextImpl MoveGen facade.
 #ifdef DDS_MOVES
   ctx.move_gen().print_trick_stats(thrp->fileMoves.GetStream());
 #ifdef DDS_MOVES_DETAILS
@@ -675,7 +675,7 @@ SOLVER_DONE:
 
 
 auto solve_same_board(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   FutureTricks * futp,
   const int hint) -> int
@@ -804,7 +804,7 @@ auto solve_same_board(
 
 
 auto analyse_later_board(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const int leadHand,
   MoveType const * move,
   const int hint,
@@ -968,7 +968,7 @@ auto analyse_later_board(
   }
 #endif
 
-// Diagnostics are routed via the SolverContext MoveGen facade.
+// Diagnostics are routed via the SolverContextImpl MoveGen facade.
 #ifdef DDS_MOVES
   ctx.move_gen().print_trick_stats(thrp->fileMoves.GetStream());
 #ifdef DDS_MOVES_DETAILS
@@ -1086,7 +1086,7 @@ auto board_range_checks(
 
 
 auto board_value_checks(
-  SolverContext& ctx,
+  SolverContextImpl& ctx,
   const Deal& dl,
   const int target,
   const int solutions,

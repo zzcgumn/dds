@@ -14,7 +14,7 @@ cc_library(
     linkopts = DDS_LINKOPTS,
     local_defines = DDS_LOCAL_DEFINES,
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/utility:constants",
     ],
@@ -35,7 +35,7 @@ cc_library(
     linkopts = DDS_LINKOPTS,
     local_defines = DDS_LOCAL_DEFINES,
     deps = [
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "//library/src/lookup_tables:lookup_tables",
         "//library/src/utility:constants",
     ],

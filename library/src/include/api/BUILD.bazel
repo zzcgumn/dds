@@ -16,6 +16,7 @@ cc_library(
     include_prefix = "api",
     visibility = ["//visibility:public"],
     deps = [
-        "//library/src/utility:constants",
+        "//library/src/include/utility:constants",
+        "//library/src/include/solver_context:solver_context",
     ],
 )
