@@ -1,6 +1,7 @@
 module dds {
     // C++ API — primary entry points for consumers
     header "dds.hpp"
+    header "dds/dds.hpp"
     header "solver_context/solver_context.hpp"
     header "api/solve_board.hpp"
     header "api/calc_dd_table.hpp"
