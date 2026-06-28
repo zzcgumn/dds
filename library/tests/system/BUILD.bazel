@@ -66,7 +66,7 @@ cc_test(
     srcs = ["worker_count_test.cpp"],
     deps = [
         "//library/src:testable_dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "@googletest//:gtest_main",
     ],
 )
@@ -78,7 +78,7 @@ cc_test(
     srcs = ["max_threads_equivalence_test.cpp"],
     deps = [
         "//library/src:testable_dds",
-        "//library/src/api:api_definitions",
+        "//library/src/include/api:api_definitions",
         "@googletest//:gtest_main",
     ],
 )

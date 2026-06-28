@@ -23,15 +23,12 @@ cc_library(
 
 filegroup(
     name = "dds_sources",
-    srcs = glob([
-        "*.cpp",
-        "*.hpp",
-        "*.h",
-    ],
-    exclude = external_headers + [
-        "ab_stats.cpp",
-        "ab_stats.hpp",
-    ],
+    srcs = glob(
+        ["*.cpp", "*.hpp"],
+        exclude = external_headers + [
+            "ab_stats.cpp",
+            "ab_stats.hpp",
+        ],
     )
 )
 
