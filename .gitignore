@@ -116,3 +116,8 @@ doxygen_output/
 # No need to clutter the repo with these.
 # regenerate_hand_lists.sh will recreate them whenever needed.
 hands/partial/
+
+# Local agent/editor working artifacts (notes, plans, language-server memory).
+/notes/
+claude/
+.serena/

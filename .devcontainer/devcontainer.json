@@ -1,0 +1,38 @@
+{
+  "name": "dds dev container",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind,consistency=cached",
+  "remoteUser": "dev",
+
+  "mounts": [
+    // Per-container Bazel output base (Bazel locks it); shared disk + repo caches
+    // so a fresh container is warm without re-downloading external repos.
+    "source=bazel-outputbase-${devcontainerId},target=/home/dev/.cache/bazel,type=volume",
+    "source=bazel-disk-cache-shared,target=/bazel-disk-cache,type=volume",
+    "source=bazel-repo-cache-shared,target=/bazel-repo-cache,type=volume"
+  ],
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "llvm-vs-code-extensions.vscode-clangd",
+        "BazelBuild.vscode-bazel",
+        "ms-python.python"
+      ],
+      "settings": {
+        "clangd.path": "/usr/bin/clangd",
+        "clangd.arguments": [
+          "--compile-commands-dir=/workspaces/${localWorkspaceFolderBasename}",
+          "--header-insertion=never"
+        ],
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
