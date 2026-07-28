@@ -112,3 +112,8 @@ doxygen_output/
 # Claude Code local settings written by cce init
 .claude/settings.local.json
 /dotnet/DDS_Core/.github/copilot-instructions.md
+
+# Local agent/editor working artifacts (notes, plans, language-server memory).
+/notes/
+claude/
+.serena/
