@@ -34,11 +34,11 @@ P_{\mathbf{B}'}\left ( B_i\right) &= \frac{\delta \left(C_a \mid c_\pi\left(\rig
 \end{aligned}
 $$
 
-Here $\delta \left(C_a \mid c_\pi\left(\right) \right) = \sum_i{\delta \left(C_a \mid c_\pi\left(\right), B_i \right)P_{\mathbf{B}}\left ( B_i\right)}$. Given a layout $B_i$, both declarer and defenders can deduce the contents of their opponents' $\mathbf{B}$, provided the inference rules and the defender model are common knowledge.This is the reason that declarer can calculate $\delta$. Most of the work in this note presumes perfect-information defenders, which collapses their belief space to $\left \\{ B_i \right \\}$. 
+Here $``\delta \left(C_a \mid c_\pi\left(\right) \right) = \sum_i{\delta \left(C_a \mid c_\pi\left(\right), B_i \right)P_{\mathbf{B}}\left ( B_i\right)}``$. Given a layout $B_i$, both declarer and defenders can deduce the contents of their opponents' $\mathbf{B}$, provided the inference rules and the defender model are common knowledge.This is the reason that declarer can calculate $\delta$. Most of the work in this note presumes perfect-information defenders, which collapses their belief space to $\left \\{ B_i \right \\}$. 
 
 Declarer takes a series of decisions, each leading to a new state, but never knows the actual layout. Decision-making of this kind is known as a Partially Observable Markov Decision Process (POMDP). Converting to a belief space is the standard trick that turns a POMDP over hidden layouts into a belief MDP. Solving a POMDP is usually computationally intractable, but it is encouraging to be working within a class of problems that has an established literature.
 ## Recursive evaluation
-Declarer plays a card $c_\pi\left(a,b,c, \cdots\right)$, observes the defender in turn play $C_d$, and now faces a decision in the new state $\left\\{ \mathbf{C'}, P_\mathbf{B'} \right\\}$. If this is the last trick — four cards left to play — the score can simply be totalled. Otherwise, by the Markov property, we feed $\left\\{ \mathbf{C'}, P_{\mathbf{B}'}\right\\}$ into the same algorithm we used for $\left\\{ \mathbf{C},P_\mathbf{B} \right\\}$.
+Declarer plays a card $``c_\pi\left(a,b,c, \cdots\right)``$, observes the defender in turn play $C_d$, and now faces a decision in the new state $\left\\{ \mathbf{C'}, P_\mathbf{B'} \right\\}$. If this is the last trick — four cards left to play — the score can simply be totalled. Otherwise, by the Markov property, we feed $\left\\{ \mathbf{C'}, P_{\mathbf{B}'}\right\\}$ into the same algorithm we used for $\left\\{ \mathbf{C},P_\mathbf{B} \right\\}$.
 ## Inductive reasoning
 Observing a card played by a defender narrows the belief space to the layouts in which that defender holds the card. Further deductions follow from the requirement that the defender considers the card optimal. Declarer might, for instance, rule out any layout in which the defender could instead have cashed a setting trick. Assuming the defender's choice was double-dummy optimal is a plausible approximation. Defender models are discussed in more detail below, once the algorithm for evaluating a declarer play plan has been developed.
 ## Searching for an optimal declarer play plan
@@ -173,7 +173,7 @@ Sampling and replenishing requires that the weights are kept consistent. With a 
 
 Early cuts must not be evaluated at a node that is at or below the replenishment floor, since they would fire automatically at a node with only one layout left.
 
-A layout $B_i$ survives when $0 < p_i^{\left( a,b,c,\cdots \mid \pi\right)}\le1$. The probability is one only when the defenders have exactly one choice at each turn. A layout may be present in several nodes whenever the defenders have had more than one choice at least once.
+A layout $B_i$ survives when $``0 < p_i^{\left( a,b,c,\cdots \mid \pi\right)} \le 1``$. The probability is one only when the defenders have exactly one choice at each turn. A layout may be present in several nodes whenever the defenders have had more than one choice at least once.
 
 We can think of the full belief space as a randomised array of all possible layouts, and of sampling as taking layouts from the front. To replenish, we search the array from the front until we find another $K$ layouts that match the played sequence and are not already part of the sample.
 
