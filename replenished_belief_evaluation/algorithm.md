@@ -21,6 +21,7 @@ Defenders are always adversarial, but  different defender models choose differen
 Declarer plays a card $c_\pi\left(\right)$ and then observes the card $C_a$ played by the defender in turn. This action induces a change
 $$\left \\{ \mathbf{C},  P_\mathbf{B} \right\\}\rightarrow \left\\{ \mathbf{C'}, P_\mathbf{B'} \right \\}$$
  The defender will play $C_a$ with probability $\delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ computed from their belief space given the information they have in layout $B_i$. This is non-zero if and only if the defender in turn holds $C_a$  in $B_i$ and $C_a$ is an optimal play according to the defender model. The primed entities can be calculated as
+ 
  $$
 \begin{aligned}
 \mathbf{C}' & = \mathbf{C} - \left \{ C_a \right \} \\
