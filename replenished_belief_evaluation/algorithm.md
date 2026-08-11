@@ -19,7 +19,7 @@ Declarer play plans specify a sequence of actions that depend on what declarer o
 Defenders are always adversarial, but  different defender models choose differently between cards. How this affects declarer's planning is discussed later, when we examine different defender models. Note that a defender can introduce a stochastic element by randomising the choice.
 
 Declarer plays a card $c_\pi\left(\right)$ and then observes the card $C_a$ played by the defender in turn. This action induces a change
-$$\left\{ \mathbf{C},  P_\mathbf{B} \right\}\rightarrow \left\{ \mathbf{C'}, P_\mathbf{B'} \right\}$$
+$$\left \\{ \mathbf{C},  P_\mathbf{B} \right\\}\rightarrow \left\\{ \mathbf{C'}, P_\mathbf{B'} \right \\}$$
  The defender will play $C_a$ with probability $\delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ computed from their belief space given the information they have in layout $B_i$. This is non-zero if and only if the defender in turn holds $C_a$  in $B_i$ and $C_a$ is an optimal play according to the defender model. The primed entities can be calculated as
  $$
 \begin{aligned}
@@ -29,11 +29,11 @@ P_{\mathbf{B}'}\left ( B_i\right) &= \frac{\delta \left(C_a \mid c_\pi\left(\rig
 \end{aligned}
 $$
 
-Here $\delta \left(C_a \mid c_\pi\left(\right) \right) = \sum_i{\delta \left(C_a \mid c_\pi\left(\right), B_i \right)P_{\mathbf{B}}\left ( B_i\right)}$. Given a layout $B_i$, both declarer and defenders can deduce the contents of their opponents' $\mathbf{B}$, provided the inference rules and the defender model are common knowledge.This is the reason that declarer can calculate $\delta$. Most of the work in this note presumes perfect-information defenders, which collapses their belief space to $\left \{ B_i \right \}$. 
+Here $\delta \left(C_a \mid c_\pi\left(\right) \right) = \sum_i{\delta \left(C_a \mid c_\pi\left(\right), B_i \right)P_{\mathbf{B}}\left ( B_i\right)}$. Given a layout $B_i$, both declarer and defenders can deduce the contents of their opponents' $\mathbf{B}$, provided the inference rules and the defender model are common knowledge.This is the reason that declarer can calculate $\delta$. Most of the work in this note presumes perfect-information defenders, which collapses their belief space to $\left \\{ B_i \right \\}$. 
 
 Declarer takes a series of decisions, each leading to a new state, but never knows the actual layout. Decision-making of this kind is known as a Partially Observable Markov Decision Process (POMDP). Converting to a belief space is the standard trick that turns a POMDP over hidden layouts into a belief MDP. Solving a POMDP is usually computationally intractable, but it is encouraging to be working within a class of problems that has an established literature.
 ## Recursive evaluation
-Declarer plays a card $c_\pi\left(a,b,c, \cdots\right)$, observes the defender in turn play $C_d$, and now faces a decision in the new state $\left\{ \mathbf{C'}, P_\mathbf{B'} \right\}$. If this is the last trick — four cards left to play — the score can simply be totalled. Otherwise, by the Markov property, we feed $\left\{ \mathbf{C'}, P_{\mathbf{B}'}\right\}$ into the same algorithm we used for $\left\{ \mathbf{C},P_\mathbf{B} \right\}$.
+Declarer plays a card $c_\pi\left(a,b,c, \cdots\right)$, observes the defender in turn play $C_d$, and now faces a decision in the new state $\left\\{ \mathbf{C'}, P_\mathbf{B'} \right\\}$. If this is the last trick — four cards left to play — the score can simply be totalled. Otherwise, by the Markov property, we feed $\left\\{ \mathbf{C'}, P_{\mathbf{B}'}\right\\}$ into the same algorithm we used for $\left\\{ \mathbf{C},P_\mathbf{B} \right\\}$.
 ## Inductive reasoning
 Observing a card played by a defender narrows the belief space to the layouts in which that defender holds the card. Further deductions follow from the requirement that the defender considers the card optimal. Declarer might, for instance, rule out any layout in which the defender could instead have cashed a setting trick. Assuming the defender's choice was double-dummy optimal is a plausible approximation. Defender models are discussed in more detail below, once the algorithm for evaluating a declarer play plan has been developed.
 ## Searching for an optimal declarer play plan
@@ -190,7 +190,7 @@ $$
 $$
 This is the probability $p \left ( \omega \right ) = p \left (S \mid \pi, B \right ) p \left ( B \right ) = p \left (S \mid \pi, B \right )/N$ that the layout is $B$ and that the defenders choose to play their cards in the order $S$, given that layout and declarer's play. Note that $\tilde{\Omega}$ includes elements with $p(\omega) = 0$, namely the pairs whose sequence is inconsistent with the layout. We retain only pairs with a non-zero probability to ensure well-defined random variables.
 $$
-\Omega = \left \{ \omega \in \tilde{\Omega} \mid p(\omega) > 0 \right\}
+\Omega = \left \\{ \omega \in \tilde{\Omega} \mid p(\omega) > 0 \right \\}
 $$
 Recall that $p \left ( B \right  ) = 1/N$ by construction and can be replaced by another probability distribution if future research suggests this. We use the notation $\left (1,2,\cdots \mid \pi \right )$ to indicate that observations will be made at steps one, two and so on, and $\left (a,b,\cdots \mid \pi \right )$ that the observations have been made. So $\left (a,b,3,4,\cdots \mid \pi \right )$ means that the first two cards have been observed and the next observation will be the third card.
 
@@ -198,15 +198,15 @@ That the same layout can appear in several pairs is a key property. It is what a
 
 We write $O_n$ for declarer's $n$th observation. Observing that the first card is $C_a$ reduces $\Omega$ to the subset
 $$
-\Omega^{(a)} = \left \{ \omega \in \Omega \mid O_1(\omega) = a\right \}
+\Omega^{(a)} = \left \\{ \omega \in \Omega \mid O_1(\omega) = a\right \\}
 $$
  Each possible observation $O_1 = a, O_1=b, \cdots$ creates a subset, and by construction these do not overlap. Forming all unions of $\Omega^{(a)}, \Omega^{(b)}, \cdots$ generates a $\sigma$-algebra. We use the standard notation $\mathcal{F}_1 = \sigma \left ( O_1 \right )$. 
 
 Observing the second card creates a projection onto a subspace of the subset that was created by the first observation.
 $$
-\Omega^{(a,b)} = \left \{ \omega \in \Omega \mid O_1(\omega) = a, O_2(\omega)=b \right \}
+\Omega^{(a,b)} = \left \\{ \omega \in \Omega \mid O_1(\omega) = a, O_2(\omega)=b \right \\}
 $$
-By construction we have $\Omega^{(a)} = \bigcup_b \Omega^{(a,b)}$, and it follows that $\mathcal{F}_2 = \sigma \left ( O_1, O_2 \right )$ is a superset of $\mathcal{F}_1$. We have, with the definition $\mathcal{F}_0 = \left \{ \emptyset, \Omega \right \}$, a structure
+By construction we have $\Omega^{(a)} = \bigcup_b \Omega^{(a,b)}$, and it follows that $\mathcal{F}_2 = \sigma \left ( O_1, O_2 \right )$ is a superset of $\mathcal{F}_1$. We have, with the definition $\mathcal{F}_0 = \left \\{ \emptyset, \Omega \right \\}$, a structure
 $$
 \mathcal{F}_0 \subseteq \mathcal{F}_1 \subseteq \mathcal{F}_2 \cdots \subseteq \mathcal{F}_T 
 $$
@@ -223,12 +223,12 @@ $$
 $$
 
 We can define 
-$$ \tau = \inf \left \{ n : \underline{R}_n \ge \rho\ \text{or}\ \bar{R}_n < \rho \right \} $$
+$$ \tau = \inf \left \\{ n : \underline{R}_n \ge \rho\ \text{or}\ \bar{R}_n < \rho \right \\} $$
 which is a stopping time, a random variable that tells us when the recursion can stop. Both $\bar{R}_n$ and $\underline{R}_n$ are $\mathcal{F}_n$ measurable, being the maximum and the minimum of $R$ over the atom $\mathcal{A}_n$. As observations accumulate, $\underline{R}_n$ can only rise while $\bar{R}_n$ can only fall. The set
 $$
-\left \{ \tau \le n \right \} =  \left\{\underline{R}_n \ge \rho \right\} \cup \left\{ \bar{R}_n < \rho \right\}
+\left \\{ \tau \le n \right \\} =  \left \\{\underline{R}_n \ge \rho \right \\} \cup \left \\{ \bar{R}_n < \rho \right \\}
 $$
-is therefore a member of $\mathcal{F}_n$, which is what makes $\tau$ a stopping time. On the event $\left \{\tau = n\right\}$ the atom $\mathcal{A}_n$ satisfies either $R(\omega) \ge \rho$ for all $\omega \in \mathcal{A}_n$ or $R(\omega) < \rho$ for all of them. This is trivially true at $\mathcal{F}_T$ as $\mathcal{A}_T$ is a singleton, which also shows that $\tau \le T$. The indicator $I_{R \ge \rho}$ is thus constant on $\mathcal{A}_\tau$, so
+is therefore a member of $\mathcal{F}_n$, which is what makes $\tau$ a stopping time. On the event $\left \\{\tau = n\right \\}$ the atom $\mathcal{A}_n$ satisfies either $R(\omega) \ge \rho$ for all $\omega \in \mathcal{A}_n$ or $R(\omega) < \rho$ for all of them. This is trivially true at $\mathcal{F}_T$ as $\mathcal{A}_T$ is a singleton, which also shows that $\tau \le T$. The indicator $I_{R \ge \rho}$ is thus constant on $\mathcal{A}_\tau$, so
 $$
 E \left [ I_{R \ge \rho} \right ] = E \left [ I_{\underline{R}_\tau \ge \rho} \right ]
 $$
@@ -289,7 +289,7 @@ This note derives a recursive algorithm for calculating the probability that a d
 
 The approach can succeed because strategy fusion is ubiquitous, while the deceptive plays it does not model are not. A deceptive play that concedes at least one overtrick when declarer reads the layout correctly, but is likely to win against a plausible plan, is rare in the author's experience. They differ from restricting declarer's read on the layout by randomising cards in that the defender needs to have information about what declarer's belief space and plan might be.
 
-Finally, the algorithm can be adapted to the expected number of tricks by changing the stopping time to $\tau = \inf \left \{n: \bar{R}_n = \underline{R}_n\right\}$. This is likely to increase the cost, as early cuts become less frequent.
+Finally, the algorithm can be adapted to the expected number of tricks by changing the stopping time to $\tau = \inf \left \\{n: \bar{R}_n = \underline{R}_n\right \\}$. This is likely to increase the cost, as early cuts become less frequent.
 
 Martin Nygren, Maida Vale, August 2026
 ## Bibliography
