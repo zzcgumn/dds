@@ -28,8 +28,8 @@ The defender will play $C_a$ with probability $\delta \left(C_a \mid c_\pi\left(
 
 $$
 \begin{aligned}
-\mathbf{C}' & = \mathbf{C} - \left \{ C_a \right \} \\
-\mathbf{B}' & = \left \\{ B_i \in \mathbf{B}: \delta\left( C_a \mid c_\pi\left(\right), B_i \right) > 0 \right\\} \\
+\mathbf{C}' & = \mathbf{C} - \left \\{ C_a \right \\} \\
+\mathbf{B}' & = \left \\{ B_i \in \mathbf{B}: \delta\left( C_a \mid c_\pi\left(\right), B_i \right) > 0 \right \\} \\
 P_{\mathbf{B}'}\left ( B_i\right) &= \frac{\delta \left(C_a \mid c_\pi\left(\right), B_i \right) P_{\mathbf{B}}\left ( B_i\right)}{\delta \left(C_a \mid c_\pi\left(\right) \right)}
 \end{aligned}
 $$
@@ -45,7 +45,7 @@ Observing a card played by a defender narrows the belief space to the layouts in
 
 Declarer wants to maximise the probability that the contract makes; the defenders want the opposite. Declarer does not know the actual layout, but assumes that a defender always plays an optimal card, and that it is common knowledge which cards count as optimal in a given layout.
 
-Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $\mathbf{W}_{\pi, \delta}$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
+Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $\mathbf{W}$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
 
 $$
 P_{make}^{\left (\mid \pi \right)} = \sum_{i=1}^N p_{i}\, \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
@@ -225,7 +225,7 @@ where $\mathbf{S}$ are all possible sequences of cards observed. Each observed c
 We can build the space from complete sequences paired with their corresponding layout
 
 $$
-\omega^{(a,b,\cdots \mid \pi)} = \left \{ S^{(a,b,\cdots \mid \pi)}, B^{(a,b,\cdots \mid \pi)}\right \}
+\omega^{(a,b,\cdots \mid \pi)} = \left \\{ S^{(a,b,\cdots \mid \pi)}, B^{(a,b,\cdots \mid \pi)}\right \\}
 $$
 
 This is the probability $p \left ( \omega \right ) = p \left (S \mid \pi, B \right ) p \left ( B \right ) = p \left (S \mid \pi, B \right )/N$ that the layout is $B$ and that the defenders choose to play their cards in the order $S$, given that layout and declarer's play. Note that $\tilde{\Omega}$ includes elements with $p(\omega) = 0$, namely the pairs whose sequence is inconsistent with the layout. We retain only pairs with a non-zero probability to ensure well-defined random variables.
