@@ -19,13 +19,17 @@ Declarer play plans specify a sequence of actions that depend on what declarer o
 Defenders are always adversarial, but  different defender models choose differently between cards. How this affects declarer's planning is discussed later, when we examine different defender models. Note that a defender can introduce a stochastic element by randomising the choice.
 
 Declarer plays a card $c_\pi\left(\right)$ and then observes the card $C_a$ played by the defender in turn. This action induces a change
-$$\left \\{ \mathbf{C},  P_\mathbf{B} \right\\}\rightarrow \left\\{ \mathbf{C'}, P_\mathbf{B'} \right \\}$$
- The defender will play $C_a$ with probability $\delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ computed from their belief space given the information they have in layout $B_i$. This is non-zero if and only if the defender in turn holds $C_a$  in $B_i$ and $C_a$ is an optimal play according to the defender model. The primed entities can be calculated as
+
+$$
+\left \\{ \mathbf{C},  P_\mathbf{B} \right\\}\rightarrow \left\\{ \mathbf{C'}, P_\mathbf{B'} \right \\}
+$$
  
- $$
+The defender will play $C_a$ with probability $\delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ computed from their belief space given the information they have in layout $B_i$. This is non-zero if and only if the defender in turn holds $C_a$  in $B_i$ and $C_a$ is an optimal play according to the defender model. The primed entities can be calculated as
+
+$$
 \begin{aligned}
 \mathbf{C}' & = \mathbf{C} - \left \{ C_a \right \} \\
-\mathbf{B}' & = \left \{ B_i \in \mathbf{B}: \delta\left( C_a \mid c_\pi\left(\right), B_i \right) > 0 \right\} \\
+\mathbf{B}' & = \left \\{ B_i \in \mathbf{B}: \delta\left( C_a \mid c_\pi\left(\right), B_i \right) > 0 \right\\} \\
 P_{\mathbf{B}'}\left ( B_i\right) &= \frac{\delta \left(C_a \mid c_\pi\left(\right), B_i \right) P_{\mathbf{B}}\left ( B_i\right)}{\delta \left(C_a \mid c_\pi\left(\right) \right)}
 \end{aligned}
 $$
@@ -42,9 +46,17 @@ Observing a card played by a defender narrows the belief space to the layouts in
 Declarer wants to maximise the probability that the contract makes; the defenders want the opposite. Declarer does not know the actual layout, but assumes that a defender always plays an optimal card, and that it is common knowledge which cards count as optimal in a given layout.
 
 Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $\mathbf{W}_{\pi, \delta}$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
-$$P_{make}^{\left (\mid \pi \right)} = \sum_{i=1}^N p_{i}\, \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$$
+
+$$
+P_{make}^{\left (\mid \pi \right)} = \sum_{i=1}^N p_{i}\, \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
+$$
+
 By construction of the belief space we take all layouts to be equally likely at the root node, so $p_i = 1/N$ and
-$$P_{make}^{\left (\mid \pi \right)} = { 1 \over N} \sum_{i=1}^N \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$$
+
+$$
+P_{make}^{\left (\mid \pi \right)} = { 1 \over N} \sum_{i=1}^N \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
+$$
+
 This indicates that our task is to identify at least one declarer play plan $\pi$ for which $\mathbf{W}_{\pi, \delta}$ is as large as possible. The defender strategy $\delta$ is fixed throughout and is suppressed from the notation everywhere except in $\mathbf{W}_{\pi, \delta}$, whose definition depends on it.
 
 There is a subtle assumption about $\delta$ lurking here. The outcome must not change with the sequence in which defender cards are played. This will hold if $\delta$ is deterministic or randomises only between cards that are equivalent against $\pi$. Randomising between equivalent cards requires only local knowledge, and reduces declarer's ability to read the layout exactly. This restriction can be lifted, but doing so requires advanced probability theory. We will develop the algorithm for evaluating the probability that a declarer play plan makes using more accessible notation before strengthening the results.
@@ -54,12 +66,21 @@ Algorithms for searching for an optimal strategy are beyond the scope of this no
 Say that declarer's first observation is the defender in turn playing $C_a$. This reduces the belief space to the layouts in which the defender to play holds $C_a$, considers it optimal, and elects to play it. 
 
 The updated probability of making the contract is
-$$ P_{make}^{\left (a\mid \pi \right)} = { 1 \over N} \sum_{i=1}^{N} p^{\left ( a \mid \pi \right)}_i \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$$
+
+$$
+P_{make}^{\left (a\mid \pi \right)} = { 1 \over N} \sum_{i=1}^{N} p^{\left ( a \mid \pi \right)}_i \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
+$$
+
 Here we use the shorthand notation $p^{\left ( a \mid \pi \right)}_i = \delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ for the probability that the defender plays $C_a$ given that the layout is $B_i$. This probability is zero if the defender does not hold $C_a$ or the play is non-optimal according to the defender model, one if $C_a$ is the only optimal choice, and $1/\mu$ if there are $\mu$ optimal choices.
 
 $P_{make}^{\left (a \mid \pi \right)}$ is therefore the joint probability that the defender plays $C_a$ and the contract makes. Playing a different card $C_b$ is a mutually exclusive observation, so we obtain the total probability by summing over every card the defender might play after declarer's first card:
-$$ P^{\left ( \mid \pi \right)}_{make} = \sum_{a} P_{make}^{\left (a \mid \pi\right)} $$
+
+$$
+P^{\left ( \mid \pi \right)}_{make} = \sum_{a} P_{make}^{\left (a \mid \pi\right)}
+$$
+
 Renormalising weights after each observation is natural if we want to work with conditional probabilities, but it complicates the formula for aggregating probabilities. To keep clear which entity is meant we use $w_i^{\left(a,b,c,\cdots \mid \pi \right) }$ for the current weight and $p_i^{\left(a,b,c,\cdots \mid \pi \right) }$ for a probability.
+
 $$
 \begin{aligned}
 p_i^{\left(a,b,c \mid \pi \right)} &= p_i^{\left (a\mid \pi \right)} \times p_i^{\left (b\mid a, \pi \right)} \times p_i^{\left (c\mid a,b, \pi \right)}\\
@@ -70,16 +91,21 @@ w_i^{\left (\cdots, b, c\mid \pi \right)} &= w_i^{\left (\cdots, b\mid \pi \righ
 $$
 
 Next we evaluate $P_{make}^{\left (a \mid \pi \right)}$ for a fixed $C_a$. Declarer's next observation $C_b$ gives the probability that the contract makes as
+
 $$ 
 P_{make}^{\left (a,b\mid \pi \right)} =  \sum_{i=1}^{N}  w^{\left ( a \mid \pi \right)}_i   p^{\left ( b \mid a,\pi \right)}_i \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}} = \sum_{i=1}^{N}w^{\left ( a, b \mid \pi \right)}_i \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
 $$
+
 We can again sum over every card the defender could have played which gives
+
 $$
 P^{\left ( a \mid \pi \right)}_{make} = \sum_{b} P_{make}^{\left (a, b \mid \pi\right)}
 $$
+
 This establishes a recursion that can be used to evaluate the probability that the contract makes given a fixed strategy $\pi$.
 
 The sum $\sum_{i=1}^{N}w_i^{\left ( a, b \mid \pi \right)} \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$ can be shortened by including only $w^{\left ( a, b \mid \pi \right)}_i > 0$ terms. This is an important property, as it reduces the size of each recursive calculation. We also have the useful identities
+
 $$
 \begin{aligned}
 \sum_a p_i^{\left (a \mid \pi \right)} &= 1 \\
@@ -87,13 +113,16 @@ $$
 \sum_c w_i^{\left(\cdots, b, c \mid \pi \right)} &= w_i^{\left(\cdots, b \mid \pi \right)}
 \end{aligned}
 $$
+
 ## Defender models
 The algorithms discussed in this note have been researched using perfect-information defender models. There is, as far as we know, no feasible algorithm for constructing a defender model that is optimal against $\pi$. Double-dummy defenders with heuristics, discussed below, are intended as a sufficient approximation.
 
 A realistic defender model would be based on the defender's current belief about the cards held by partner and by declarer, refined by observing the actions of both, and by the partnership's agreements on leads and signals. Building such a model is a harder research task than modelling declarer play, and will have to wait until we know how to model declarer play.
 ### Double-dummy defenders with heuristics
 Treating all cards that are double-dummy optimal as equivalent can be too pessimistic from a defender's point of view as it assumes declarer omniscience.
+
 ![deal](diagrams/deal-1783686538441.png)
+
 South is declaring and plays the ace of spades. Double-dummy analysis treats the queen, seven and five as equivalent, because it excludes the possibility that declarer guesses the suit incorrectly.
 
 The research in this note uses double-dummy defenders with heuristics that select from a subset of double-dummy optimal cards to avoid the worst of these problems. The heuristics resemble "low in second seat", "high in third seat" and other defensive rules of thumb. When they are a good enough approximation of a perfect-information defender requires further research.
@@ -121,9 +150,11 @@ Opportunities to execute successful deceptive plays are in practice very rare. E
 There is an asymmetry here that needs to be noted. Declarer may also choose to execute a deceptive play to boost the probability to make the contract, not worrying about extra undertricks. Declarer's deceptive plays can, however, never succeed against perfect-information defenders.
 ## Pruning the a priori belief space
 Layouts that are already doomed before a single card is played can be removed, which reduces the cost of calculating the probability that the contract makes. This requires that the probability of the contract being doomed before declarer plays a card is known.
+
 $$
 P_{\text{make}} = P(\text{make} \mid \text{not doomed}) \times P(\text{not doomed})
 $$
+
 This formula holds because $P(make \mid doomed)$ is zero by definition. Formally this should be doomed given $\delta$, but any method which is guaranteed to only remove doomed layouts is acceptable. Doomed layouts would in any case be removed later in the search, when they are marked as lost.
 ## Early cuts
 Against perfect-information defenders, declarer will never make the contract in a layout when the double-dummy result is enough to defeat it. Such layouts can be skipped completely.
@@ -151,13 +182,16 @@ A possibly more efficient alternative is to enumerate the part of the belief spa
 The new layouts are added to the search tree only under the node at which we replenish. Each new layout $B_j$ has the probability  $p_j^{\left(a,b,c,\cdots \mid \pi \right)}$ that the defenders would have played the cards in this sequence.
 
 Whether we resample or enumerate the remaining belief space, the total probability mass for the node must remain constant.  Since replenishing introduces different weights we will use a slight change of notation
+
 $$
 \begin{aligned}
 \kappa^{\left( \mid \pi\right)} &= {1 \over M} \\
 w_i^{\left(a,b,c,\cdots \mid \pi \right)} &= \kappa^{\left( a,b,c,\cdots \mid \pi\right)} \times p_i^{\left(a,b,c,\cdots \mid \pi \right)}
 \end{aligned}
 $$
+
 where the sample weight $\kappa$ carries changes along the path. With ${\hat{B}}$ the remaining layouts before replenishing and $\Delta\hat{B}$ the new layouts added in we have
+
 $$
 \begin{aligned}
 E_{\hat{B}} &= \sum_{i \in \hat{B}}p_i^{\left(a,b,c,\cdots \mid \pi \right)}\\
@@ -165,6 +199,7 @@ E_{\hat{B} \cup \Delta \hat{B}} &= \sum_{j \in \hat{B} \cup \Delta \hat{B}}p_j^{
 \kappa &\leftarrow \kappa \times {E_{\hat{B}} \over E_{\hat{B} \cup \Delta \hat{B}}}
 \end{aligned} 
 $$
+
 Rescaling is only needed after replenishing.
 
 The size at which replenishment should be triggered requires empirical data. The rule to trigger replenishment must only depend on the sample size or total probability mass. Including other criteria, like how many times the contract makes, would add bias. Triggering on a single remaining layout is a reasonable starting point. Since sub-nodes are only created for valid defender moves, it is impossible for the sample size to drop to zero.
@@ -180,42 +215,55 @@ A guess can then be scored as a certainty, provided it can be postponed until be
 Several formulations in the section "Aggregating probability to make the contract" leave subtle details about how the probabilities are calculated implicit. The advantage of that treatment is that it develops the theory using concepts familiar to readers with a basic knowledge of probability theory. To sharpen the precision we will start by studying subsets of $\mathbf{B}$ that appear when cards from $\mathbf{C}$ are observed. We presume a fixed declarer play strategy $\pi$; searching for an optimal one is a separate problem.
 
 Declarer's first observation will be one out of the optimal cards the defender can play. Two sources of non-determinism stop declarer from knowing which card it will be: the actual layout, and the defender's freedom to choose randomly among optimal cards. We model this by a probability space
+
 $$
 \tilde{\Omega} = \mathbf{S} \times \mathbf{B}
 $$
+
 where $\mathbf{S}$ are all possible sequences of cards observed. Each observed card is a random variable. This structure makes no assumption about $\delta$, which removes the earlier restriction, but it cannot be enumerated in practice.
 
 We can build the space from complete sequences paired with their corresponding layout
+
 $$
 \omega^{(a,b,\cdots \mid \pi)} = \left \{ S^{(a,b,\cdots \mid \pi)}, B^{(a,b,\cdots \mid \pi)}\right \}
 $$
+
 This is the probability $p \left ( \omega \right ) = p \left (S \mid \pi, B \right ) p \left ( B \right ) = p \left (S \mid \pi, B \right )/N$ that the layout is $B$ and that the defenders choose to play their cards in the order $S$, given that layout and declarer's play. Note that $\tilde{\Omega}$ includes elements with $p(\omega) = 0$, namely the pairs whose sequence is inconsistent with the layout. We retain only pairs with a non-zero probability to ensure well-defined random variables.
+
 $$
 \Omega = \left \\{ \omega \in \tilde{\Omega} \mid p(\omega) > 0 \right \\}
 $$
+
 Recall that $p \left ( B \right  ) = 1/N$ by construction and can be replaced by another probability distribution if future research suggests this. We use the notation $\left (1,2,\cdots \mid \pi \right )$ to indicate that observations will be made at steps one, two and so on, and $\left (a,b,\cdots \mid \pi \right )$ that the observations have been made. So $\left (a,b,3,4,\cdots \mid \pi \right )$ means that the first two cards have been observed and the next observation will be the third card.
 
 That the same layout can appear in several pairs is a key property. It is what allows the model to include defender randomisation — the principle of restricted choice, in bridge terms.
 
 We write $O_n$ for declarer's $n$th observation. Observing that the first card is $C_a$ reduces $\Omega$ to the subset
+
 $$
 \Omega^{(a)} = \left \\{ \omega \in \Omega \mid O_1(\omega) = a\right \\}
 $$
- Each possible observation $O_1 = a, O_1=b, \cdots$ creates a subset, and by construction these do not overlap. Forming all unions of $\Omega^{(a)}, \Omega^{(b)}, \cdots$ generates a $\sigma$-algebra. We use the standard notation $\mathcal{F}_1 = \sigma \left ( O_1 \right )$. 
+
+Each possible observation $O_1 = a, O_1=b, \cdots$ creates a subset, and by construction these do not overlap. Forming all unions of $\Omega^{(a)}, \Omega^{(b)}, \cdots$ generates a $\sigma$-algebra. We use the standard notation $\mathcal{F}_1 = \sigma \left ( O_1 \right )$. 
 
 Observing the second card creates a projection onto a subspace of the subset that was created by the first observation.
+
 $$
 \Omega^{(a,b)} = \left \\{ \omega \in \Omega \mid O_1(\omega) = a, O_2(\omega)=b \right \\}
 $$
+
 By construction we have $\Omega^{(a)} = \bigcup_b \Omega^{(a,b)}$, and it follows that $\mathcal{F}_2 = \sigma \left ( O_1, O_2 \right )$ is a superset of $\mathcal{F}_1$. We have, with the definition $\mathcal{F}_0 = \left \\{ \emptyset, \Omega \right \\}$, a structure
+
 $$
 \mathcal{F}_0 \subseteq \mathcal{F}_1 \subseteq \mathcal{F}_2 \cdots \subseteq \mathcal{F}_T 
 $$
+
 which is known as a filtration. This unlocks the full machinery of Martingale theory. Note that  $\mathcal{F}_T = 2^\Omega$ since observing all cards identifies exactly one element in $\Omega$. 
 
 Filtrations come to life by relationships between random variables that are defined over different $\mathcal{F}_n$. A sequence of random variables, $X_0, X_1, \cdots, X_T$ is said to be adapted if $X_n$ is measurable over $\mathcal{F}_n$ for all $n$. Any random variable $X$ that is measurable over $\Omega$ gives rise to an adapted sequence $E\left[ X | \mathcal{F}_0\right], E\left[ X | \mathcal{F}_1\right], \cdots, E\left[ X | \mathcal{F}_T \right]$. A filtration can be viewed as a tool that allows us to follow how knowledge about a random variable evolves.
 
 Declarer needs $\rho$ tricks to make the contract and the number of tricks made $r$ is a random variable $R$ over $\Omega$. Both the maximum, $\bar{R}$, and minimum, $\underline{R}$ are also well defined random variables. Let $\mathcal{A}_n$ be the subset of $\Omega$ that is consistent with the first $n$ observations.
+
 $$
 \begin{aligned}
 \bar{R}_n &= \max_{\omega \in \mathcal{A}_n} R(\omega) \\
@@ -224,26 +272,36 @@ $$
 $$
 
 We can define 
-$$ \tau = \inf \left \\{ n : \underline{R}_n \ge \rho\ \text{or}\ \bar{R}_n < \rho \right \\} $$
+
+$$
+\tau = \inf \left \\{ n : \underline{R}_n \ge \rho\ \text{or}\ \bar{R}_n < \rho \right \\}
+$$
+
 which is a stopping time, a random variable that tells us when the recursion can stop. Both $\bar{R}_n$ and $\underline{R}_n$ are $\mathcal{F}_n$ measurable, being the maximum and the minimum of $R$ over the atom $\mathcal{A}_n$. As observations accumulate, $\underline{R}_n$ can only rise while $\bar{R}_n$ can only fall. The set
+
 $$
 \left \\{ \tau \le n \right \\} =  \left \\{\underline{R}_n \ge \rho \right \\} \cup \left \\{ \bar{R}_n < \rho \right \\}
 $$
+
 is therefore a member of $\mathcal{F}_n$, which is what makes $\tau$ a stopping time. On the event $\left \\{\tau = n\right \\}$ the atom $\mathcal{A}_n$ satisfies either $R(\omega) \ge \rho$ for all $\omega \in \mathcal{A}_n$ or $R(\omega) < \rho$ for all of them. This is trivially true at $\mathcal{F}_T$ as $\mathcal{A}_T$ is a singleton, which also shows that $\tau \le T$. The indicator $I_{R \ge \rho}$ is thus constant on $\mathcal{A}_\tau$, so
+
 $$
 E \left [ I_{R \ge \rho} \right ] = E \left [ I_{\underline{R}_\tau \ge \rho} \right ]
 $$
+
 and stopping the recursion at $\tau$ does not change the answer. This is what licenses the early cuts.
 
 The implementations suggested in the early cuts section estimate the stopping time. This is safe as long as the estimates $\left(\bar{L}_n, \underline{L}_n\right)$ are conservative, that is $\bar{L}_n \ge \bar{R}_n$ and $\underline{L}_n \le \underline{R}_n$
 
 The random variable $I_{R \ge \rho}$ is, presuming a fixed $\delta$, measurable over $\mathcal{F}_T$ and $\tilde{P}^{\left (a \mid \pi \right)}_{make} = E \left [ I_{R \ge \rho} \mid a \right]$ is thus well defined. We recover the recursive structure by applying the tower property of conditional probability
+
 $$
 \begin{aligned}
 \tilde{P}^{\left (a \mid \pi \right )}_{make} &= E \left [ E \left [ I_{R \ge \rho} \mid a, b \right ] \mid a \right ] \\
 P^{\left (a \mid \pi \right )}_{make} &= \tilde{P}^{\left (a \mid \pi \right )}_{make} \times \sum_i w_i^{\left ( a \mid \pi \right)} = \tilde{P}^{\left (a \mid \pi \right )}_{make} \times p^{\left ( a \mid \pi \right)}
 \end{aligned}
 $$
+
 Here $\tilde{P}^{\left (a \mid \pi \right )}_{make}$ is the conditional probability given $O_1=a$, and $P^{\left (a \mid \pi \right )}_{make}$ the total probability that the contract makes and $O_1=a$. We have also introduced the shorthand $E \left [ X \mid a \right ]$ for $E \left [ X \mid O_1=a \right ]$.
 
 Both the recursive aggregation of the probability that the contract makes and the validity of early cuts have now been derived by purely mathematical means, without any argument in prose. It is nonetheless instructive to look at this machinery in terms of tricks made rather than cards played.
@@ -251,23 +309,29 @@ Both the recursive aggregation of the probability that the contract makes and th
 The filtration creates a sequence of random variables over cards that can be observed at each defender turn. The filtration does not in itself carry any information: $\langle r \rangle = E(R) = E\left [ E(R|\mathcal{F}_n) \right]$ by the tower property. It is the cards played by the defenders that reveal information about which sequence and layout pairs are possible.
 
 We can construct another martingale from the random variable for number of tricks made:
+
 $$
 \begin{aligned}
 E \left [ R \mid \mathcal{F}_{n-1} \right ] &= E \left [ E\left[R \mid \mathcal{F}_n \right] \mid \mathcal{F}_{n-1} \right] \\
 R_{n-1} &= E \left [ R_n \mid \mathcal{F}_{n-1} \right]
 \end{aligned}
 $$
+
 Both $\bar{R}_n$ and $\underline{R}_n$ behave differently from $R_n$. Since $\mathcal{A}_{n+1} \subseteq \mathcal{A}_n$ it follows that 
+
 $$
 \begin{aligned}
 \bar{R}_{n-1} &\ge E \left [ \bar{R}_n \mid \mathcal{F}_{n-1} \right] \\
 \underline{R}_{n-1} &\le E \left [ \underline{R}_n \mid \mathcal{F}_{n-1} \right]
 \end{aligned}
 $$
+
 Expected tricks is a martingale, the maximum possible tricks a supermartingale and the minimum possible tricks a submartingale. The inequality
+
 $$
 \underline{R}_{n} \le R_{n} \le \bar{R}_{n}
 $$
+
 shows how each step narrows down the possible outcome.
 ## Brute force search for best declarer strategy
 It is tempting to look for an optimal strategy $\pi$ by trying each possible card at every node in the recursive structure.This requires that each node in the Markov structure can be treated as an independent declarer play problem. This is true when the defender strategy $\delta$ is independent of $\pi$. Defenders aware of $\pi$ choose their cards in response to declarer's whole plan, so which sub-tree a layout is steered into depends on what declarer would do in another part of the tree. The value of a node can no longer be calculated by examining this sub-tree only.
