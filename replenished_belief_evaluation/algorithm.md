@@ -45,7 +45,7 @@ Observing a card played by a defender narrows the belief space to the layouts in
 
 Declarer wants to maximise the probability that the contract makes; the defenders want the opposite. Declarer does not know the actual layout, but assumes that a defender always plays an optimal card, and that it is common knowledge which cards count as optimal in a given layout.
 
-Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $``\mathbf{W}_{\pi, \delta}``$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbf{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
+Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $``\mathbf{W}_{\pi, \delta}``$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $``\mathbf{I}_{i \in \mathbf{W}_{\pi, \delta}}``$ be one when $B_i$ lies in $``\mathbf{W}_{\pi, \delta}``$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
 
 $$
 P_{make}^{\left (\mid \pi \right)} = \sum_{i=1}^N p_{i}\, \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
@@ -57,7 +57,7 @@ $$
 P_{make}^{\left (\mid \pi \right)} = { 1 \over N} \sum_{i=1}^N \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
 $$
 
-This indicates that our task is to identify at least one declarer play plan $\pi$ for which $\mathbf{W}_{\pi, \delta}$ is as large as possible. The defender strategy $\delta$ is fixed throughout and is suppressed from the notation everywhere except in $\mathbf{W}_{\pi, \delta}$, whose definition depends on it.
+This indicates that our task is to identify at least one declarer play plan $\pi$ for which $``\mathbf{W}_{\pi, \delta}``$ is as large as possible. The defender strategy $\delta$ is fixed throughout and is suppressed from the notation everywhere except in $``\mathbf{W}_{\pi, \delta}``$, whose definition depends on it.
 
 There is a subtle assumption about $\delta$ lurking here. The outcome must not change with the sequence in which defender cards are played. This will hold if $\delta$ is deterministic or randomises only between cards that are equivalent against $\pi$. Randomising between equivalent cards requires only local knowledge, and reduces declarer's ability to read the layout exactly. This restriction can be lifted, but doing so requires advanced probability theory. We will develop the algorithm for evaluating the probability that a declarer play plan makes using more accessible notation before strengthening the results.
 
@@ -71,7 +71,7 @@ $$
 P_{make}^{\left (a\mid \pi \right)} = { 1 \over N} \sum_{i=1}^{N} p^{\left ( a \mid \pi \right)}_i \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
 $$
 
-Here we use the shorthand notation $p^{\left ( a \mid \pi \right)}_i = \delta \left(C_a \mid c_\pi\left(\right), B_i \right)$ for the probability that the defender plays $C_a$ given that the layout is $B_i$. This probability is zero if the defender does not hold $C_a$ or the play is non-optimal according to the defender model, one if $C_a$ is the only optimal choice, and $1/\mu$ if there are $\mu$ optimal choices.
+Here we use the shorthand notation $``p^{\left ( a \mid \pi \right)}_i = \delta \left(C_a \mid c_\pi\left(\right), B_i \right)``$ for the probability that the defender plays $C_a$ given that the layout is $B_i$. This probability is zero if the defender does not hold $C_a$ or the play is non-optimal according to the defender model, one if $C_a$ is the only optimal choice, and $1/\mu$ if there are $\mu$ optimal choices.
 
 $P_{make}^{\left (a \mid \pi \right)}$ is therefore the joint probability that the defender plays $C_a$ and the contract makes. Playing a different card $C_b$ is a mutually exclusive observation, so we obtain the total probability by summing over every card the defender might play after declarer's first card:
 
@@ -104,7 +104,7 @@ $$
 
 This establishes a recursion that can be used to evaluate the probability that the contract makes given a fixed strategy $\pi$.
 
-The sum $\sum_{i=1}^{N}w_i^{\left ( a, b \mid \pi \right)} \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}$ can be shortened by including only $w^{\left ( a, b \mid \pi \right)}_i > 0$ terms. This is an important property, as it reduces the size of each recursive calculation. We also have the useful identities
+The sum $``\sum_{i=1}^{N}w_i^{\left ( a, b \mid \pi \right)} \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}``$ can be shortened by including only $``w^{\left ( a, b \mid \pi \right)}_i > 0``$ terms. This is an important property, as it reduces the size of each recursive calculation. We also have the useful identities
 
 $$
 \begin{aligned}
@@ -283,7 +283,7 @@ $$
 \left \\{ \tau \le n \right \\} =  \left \\{\underline{R}_n \ge \rho \right \\} \cup \left \\{ \bar{R}_n < \rho \right \\}
 $$
 
-is therefore a member of $\mathcal{F}_n$, which is what makes $\tau$ a stopping time. On the event $\left \\{\tau = n\right \\}$ the atom $\mathcal{A}_n$ satisfies either $R(\omega) \ge \rho$ for all $\omega \in \mathcal{A}_n$ or $R(\omega) < \rho$ for all of them. This is trivially true at $\mathcal{F}_T$ as $\mathcal{A}_T$ is a singleton, which also shows that $\tau \le T$. The indicator $I_{R \ge \rho}$ is thus constant on $\mathcal{A}_\tau$, so
+is therefore a member of $\mathcal{F}_n$, which is what makes $\tau$ a stopping time. On the event $\left \\{\tau = n\right \\}$ the atom $\mathcal{A}_n$ satisfies either $R(\omega) \ge \rho$ for all $\omega \in \mathcal{A}_n$ or $R(\omega) < \rho$ for all of them. This is trivially true at $``\mathcal{F}_T$ as $\mathcal{A}_T``$ is a singleton, which also shows that $``\tau \le T``$. The indicator $``I_{R \ge \rho}``$ is thus constant on $``\mathcal{A}_\tau``$, so
 
 $$
 E \left [ I_{R \ge \rho} \right ] = E \left [ I_{\underline{R}_\tau \ge \rho} \right ]
@@ -293,7 +293,7 @@ and stopping the recursion at $\tau$ does not change the answer. This is what li
 
 The implementations suggested in the early cuts section estimate the stopping time. This is safe as long as the estimates $\left(\bar{L}_n, \underline{L}_n\right)$ are conservative, that is $\bar{L}_n \ge \bar{R}_n$ and $\underline{L}_n \le \underline{R}_n$
 
-The random variable $I_{R \ge \rho}$ is, presuming a fixed $\delta$, measurable over $\mathcal{F}_T$ and $\tilde{P}^{\left (a \mid \pi \right)}_{make} = E \left [ I_{R \ge \rho} \mid a \right]$ is thus well defined. We recover the recursive structure by applying the tower property of conditional probability
+The random variable $``I_{R \ge \rho}``$ is, presuming a fixed $\delta$, measurable over $``\mathcal{F}_T$ and $\tilde{P}^{\left (a \mid \pi \right)}_{make} = E \left [ I_{R \ge \rho} \mid a \right]``$ is thus well defined. We recover the recursive structure by applying the tower property of conditional probability
 
 $$
 \begin{aligned}
@@ -302,7 +302,7 @@ P^{\left (a \mid \pi \right )}_{make} &= \tilde{P}^{\left (a \mid \pi \right )}_
 \end{aligned}
 $$
 
-Here $\tilde{P}^{\left (a \mid \pi \right )}_{make}$ is the conditional probability given $O_1=a$, and $P^{\left (a \mid \pi \right )}_{make}$ the total probability that the contract makes and $O_1=a$. We have also introduced the shorthand $E \left [ X \mid a \right ]$ for $E \left [ X \mid O_1=a \right ]$.
+Here $``\tilde{P}^{\left (a \mid \pi \right )}_{make}``$ is the conditional probability given $O_1=a$, and $``P^{\left (a \mid \pi \right )}_{make}``$ the total probability that the contract makes and $O_1=a$. We have also introduced the shorthand $E \left [ X \mid a \right ]$ for $E \left [ X \mid O_1=a \right ]$.
 
 Both the recursive aggregation of the probability that the contract makes and the validity of early cuts have now been derived by purely mathematical means, without any argument in prose. It is nonetheless instructive to look at this machinery in terms of tricks made rather than cards played.
 
@@ -317,7 +317,7 @@ R_{n-1} &= E \left [ R_n \mid \mathcal{F}_{n-1} \right]
 \end{aligned}
 $$
 
-Both $\bar{R}_n$ and $\underline{R}_n$ behave differently from $R_n$. Since $\mathcal{A}_{n+1} \subseteq \mathcal{A}_n$ it follows that 
+Both $``\bar{R}_n``$ and $``\underline{R}_n``$ behave differently from $R_n$. Since $``\mathcal{A}_{n+1} \subseteq \mathcal{A}_n``$ it follows that 
 
 $$
 \begin{aligned}
