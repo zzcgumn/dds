@@ -45,7 +45,7 @@ Observing a card played by a defender narrows the belief space to the layouts in
 
 Declarer wants to maximise the probability that the contract makes; the defenders want the opposite. Declarer does not know the actual layout, but assumes that a defender always plays an optimal card, and that it is common knowledge which cards count as optimal in a given layout.
 
-Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $W_{\pi, \delta}$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbf{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
+Calculating the probability that the contract makes seems straightforward if, for each layout, we know the probability that it occurs and whether the contract makes with two fixed plans $\pi$ and $\delta$. Let $``\mathbf{W}_{\pi, \delta}``$ be the subset of layouts in which the contract makes under $\pi$ against $\delta$, and let the indicator $\mathbf{I}_{i \in \mathbf{W}_{\pi, \delta}}$ be one when $B_i$ lies in $\mathbf{W}_{\pi, \delta}$ and zero otherwise. Writing $p_i$ for the probability of layout $B_i$,
 
 $$
 P_{make}^{\left (\mid \pi \right)} = \sum_{i=1}^N p_{i}\, \mathbb{I}_{i \in \mathbf{W}_{\pi, \delta}}
