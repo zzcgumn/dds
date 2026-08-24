@@ -1,7 +1,7 @@
 ---
 capability: dds-public-api
 owners: [api]
-last-updated: 2026-07-19
+last-updated: 2026-08-24
 ---
 
 # DDS Public API
@@ -36,8 +36,11 @@ capability defines what crosses the boundary and promises to stay stable.
      header for the full set.
   3. **Pure-C ABI shim** — `dds_c_api.h` (`dds_c_*`). Pointer-only, POD-only,
      opaque `void*` handle (`DDS_C_SOLVER_CTX`); no C++ types cross the boundary.
-     It forwards to layer 2 and now covers that layer's full surface: context
-     lifecycle (including config-based creation), `dds_c_solve_board`,
+     It forwards to layer 2 and covers that layer's full surface with one
+     deliberate exception — belief evaluation
+     ([replenished-belief-evaluation](replenished-belief-evaluation.md)), which
+     is C++ and Python only and has no `dds_c_*` entry point. The shim covers:
+     context lifecycle (including config-based creation), `dds_c_solve_board`,
      `dds_c_calc_dd_table` and its `_pbn` twin, `dds_c_calc_par`, TT
      configure/resize/clear, both resets, and the logging passthroughs.
      `SolverConfig` is decomposed into scalar arguments and `TTKind` crosses as
@@ -45,7 +48,10 @@ capability defines what crosses the boundary and promises to stay stable.
 - **Bindings pick different layers.** The shim header
   [`dds_c_api.h`](../library/src/api/dds_c_api.h) is C-ABI but not
   C-includable (it pulls in `dll.h`, which uses C++ trailing-return syntax),
-  so each binding takes its own approach to it.
+  so each binding takes its own approach to it. Java/FFM and .NET reach the
+  solver only through the shim (plus a few flat-API symbols), so belief
+  evaluation — the shim's one gap — is unreachable from either; Python is
+  unaffected, since it wraps layer 2 directly.
   - **Python.** Wraps the C++ API via pybind11
     ([python-binding](python-binding.md)), not the C shim. There is no
     shipped ctypes binding.
