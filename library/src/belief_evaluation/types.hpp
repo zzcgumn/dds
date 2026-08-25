@@ -19,8 +19,8 @@ struct Card
 };
 
 /// Identifies a declarer strategy among strategies compared together.
-/// Unused beyond distinctness validation in version one; load-bearing once
-/// strategy comparison is added.
+/// Unused beyond distinctness validation today; load-bearing once strategy
+/// comparison is added.
 using StrategyId = std::uint32_t;
 
 /// Opaque byte string a strategy uses to declare what `play` consults beyond
@@ -67,7 +67,13 @@ struct ObservationState
 {
     int trump;
     int first;                  ///< seat on lead at the root
-    PlayTraceBin history;       ///< every card played so far, in order
+    PlayTraceBin history;       ///< every card played so far, in order — including
+                                 ///< cards already played to the root's trick in
+                                 ///< progress, if any, but never cards from a trick
+                                 ///< that completed before the root was constructed:
+                                 ///< a Deal keeps no record of a resolved trick, so
+                                 ///< that history is unrecoverable from the root
+                                 ///< layout alone
     int declarer;                ///< seat; dummy is (declarer + 2) % 4
     int tricks_needed;           ///< tricks still required to make the contract
     int tricks_won_by_declarer;
@@ -93,10 +99,14 @@ struct BeliefView
     std::size_t space_size;   ///< layouts believed consistent, if known; 0 when unknown
 };
 
-/// A declarer node's per-child bookkeeping record. Version one always
-/// populates exactly one entry in `p_make`, since evaluating one strategy is
-/// all this plan's successors do; the map shape is load-bearing for later
-/// plans that compare strategies.
+/// A declarer node's per-child bookkeeping record, for a future reuse
+/// cache. **Not yet populated.** The exhaustive evaluator has no cache and
+/// declarer nodes have exactly one child, so nothing here has a reason to
+/// write to this struct or a way to test a value it wrote —
+/// half-populating it now would let it silently acquire fields a future
+/// caller trusts without ever having been exercised. The `p_make` map
+/// shape is chosen for a future strategy-comparison search, not used
+/// before then.
 struct NodeSearchInfo
 {
     Deal renumbered;   ///< remaining cards, gaps removed
