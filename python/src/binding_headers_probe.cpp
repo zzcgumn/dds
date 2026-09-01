@@ -24,6 +24,8 @@
 #include <pbn.hpp>
 #include <solver_context/solver_context.hpp>
 
+#include "converters.hpp"
+
 #include <belief_evaluation/evaluate.hpp>
 
 namespace
