@@ -17,6 +17,26 @@ pybind_extension(
     visibility = ["//visibility:public"],
 )
 
+# Compile-only: proves bindings.cpp's own include set (mirrored verbatim in
+# the one source below) still compiles alongside belief_evaluation's public
+# headers, now that the module is namespaced. Not part of the real
+# extension above -- deliberately a separate target so a probe never ships
+# in the actual Python package, and so this stays easy to remove once
+# the real bindings are written and this claim is proven a different way.
+pybind_extension(
+    name = "_binding_headers_probe",
+    testonly = True,
+    srcs = [
+        "src/binding_headers_probe.cpp",
+    ],
+    copts = DDS_CPPOPTS,
+    deps = [
+        "//library/src:dds",
+        "//library/src/belief_evaluation",
+    ],
+    visibility = ["//visibility:private"],
+)
+
 # Copy the extension into the dds3 package directory with the platform-specific
 # filename Python expects for native modules.
 genrule(
