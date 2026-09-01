@@ -18,16 +18,19 @@ pybind_extension(
 )
 
 # Compile-only: proves bindings.cpp's own include set (mirrored verbatim in
-# the one source below) still compiles alongside belief_evaluation's public
-# headers, now that the module is namespaced. Not part of the real
-# extension above -- deliberately a separate target so a probe never ships
-# in the actual Python package, and so this stays easy to remove once
-# the real bindings are written and this claim is proven a different way.
+# the one source below, including converters.hpp -- declarations only, never
+# called, so converters.cpp need not be a source here too) still compiles
+# alongside belief_evaluation's public headers, now that the module is
+# namespaced. Not part of the real extension above -- deliberately a
+# separate target so a probe never ships in the actual Python package, and
+# so this stays easy to remove once the real bindings are written and this
+# claim is proven a different way.
 pybind_extension(
     name = "_binding_headers_probe",
     testonly = True,
     srcs = [
         "src/binding_headers_probe.cpp",
+        "src/converters.hpp",
     ],
     copts = DDS_CPPOPTS,
     deps = [
