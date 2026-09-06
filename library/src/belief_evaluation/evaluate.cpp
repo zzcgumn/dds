@@ -62,6 +62,96 @@ namespace
         }
     }
 
+    /// tier1_made_cuts's single write site, following count_node()'s
+    /// pattern: one small helper per counter, each checking the null
+    /// `counters` pointer the same way. Called at both sites the
+    /// already_made() cut fires -- p_make() and evaluate()'s own
+    /// root-handling block, which mirrors every cut for the reason
+    /// documented at count_node()'s own paired call.
+    auto count_tier1_made_cut(EvaluationCounters* counters) -> void
+    {
+        if (counters != nullptr)
+        {
+            counters->tier1_made_cuts += 1;
+        }
+    }
+
+    /// tier1_dead_cuts's single write site, following count_node()'s
+    /// pattern. Called at both sites the is_dead() cut fires -- p_make()
+    /// and evaluate()'s own root-handling block.
+    auto count_tier1_dead_cut(EvaluationCounters* counters) -> void
+    {
+        if (counters != nullptr)
+        {
+            counters->tier1_dead_cuts += 1;
+        }
+    }
+
+    /// tier2_cuts's single write site, following count_node()'s pattern.
+    /// Called at both sites the tier2_dead() cut fires -- p_make() and
+    /// evaluate()'s own root-handling block.
+    auto count_tier2_cut(EvaluationCounters* counters) -> void
+    {
+        if (counters != nullptr)
+        {
+            counters->tier2_cuts += 1;
+        }
+    }
+
+    /// sample_size_by_depth's single write site, following count_node()'s
+    /// pattern, called at the exact same two sites (p_make() and
+    /// evaluate()'s own root-handling block) with the exact same node and
+    /// depth count_node() itself uses -- every node reached is recorded
+    /// here, not only ones a cut later touches, matching nodes_visited's
+    /// own "terminal or expanded, including the root" scope. Grows the
+    /// vector on demand: see EvaluationCounters::sample_size_by_depth's own
+    /// doxygen for why a trailing zero-entry must never mean "reached but
+    /// empty".
+    auto record_sample_size(EvaluationCounters* counters, BeliefNode const& node, int depth) -> void
+    {
+        if (counters == nullptr)
+        {
+            return;
+        }
+        auto const index = static_cast<std::size_t>(depth);
+        if (index >= counters->sample_size_by_depth.size())
+        {
+            counters->sample_size_by_depth.resize(index + 1);
+        }
+        DepthSampleStats& stats = counters->sample_size_by_depth[index];
+        auto const layouts = static_cast<std::uint64_t>(node.layouts.size());
+        if (stats.nodes == 0 || layouts < stats.layout_min)
+        {
+            stats.layout_min = layouts;
+        }
+        stats.layout_sum += layouts;
+        stats.nodes += 1;
+    }
+
+    /// Everything the recursion carries unchanged from the root down to
+    /// every node, declarer or defender, sample or exhaustive. Held by
+    /// const reference and passed down unmodified at every call --
+    /// widening this struct is how the recursion gains new read-only
+    /// context in future without touching every call site's parameter
+    /// list again.
+    ///
+    /// `error` is deliberately not a member: it is a mutable out-parameter
+    /// the recursion writes to report a callback failure, and burying a
+    /// mutable out-parameter in a struct named "context" would make it
+    /// stop looking like one. `depth` is deliberately not a member either
+    /// (see p_make()'s own parameter list): it is the one thing that
+    /// genuinely differs per call, so it stays a plain parameter rather
+    /// than forcing every level either to copy it into a by-value context
+    /// or to pay for a by-const-reference context header just for one
+    /// field that changes every call.
+    struct SearchContext
+    {
+        DeclarerStrategy const& pi;
+        DefenderStrategy const& delta;
+        EvaluateOptions const& options;
+        EvaluationCounters* counters;  // null unless collecting
+    };
+
     /// The recursion: P_make(node) = terminal_value(node), or the sum (for
     /// a defender node) / the single value (for a declarer node) over its
     /// children. Once `error` is set, every further call is a no-op
@@ -74,33 +164,42 @@ namespace
     /// so that stays true as call sites are added, not because it is
     /// reachable today.
     ///
-    /// `counters` is null unless EvaluateOptions::collect_counters was set;
-    /// every write to it goes through count_node() so collection stays a
-    /// single well-known site as more counters arrive.
+    /// `ctx.counters` is null unless EvaluateOptions::collect_counters was
+    /// set; every write to it goes through count_node() so collection
+    /// stays a single well-known site as more counters arrive.
+    ///
+    /// `depth` is the node's distance from the root, which is depth 0.
+    /// evaluate() dispatches the root itself, outside this function (see
+    /// its own root-handling block, which mirrors every cut here for that
+    /// reason), so the root never reaches this function and every call
+    /// site below passes `depth + 1` -- there is no call site that passes
+    /// depth 0.
     auto p_make(
         BeliefNode const& node,
-        DeclarerStrategy const& pi,
-        DefenderStrategy const& delta,
-        std::optional<EvaluationError>& error,
-        EvaluationCounters* counters,
-        EvaluateOptions const& options) -> double
+        SearchContext const& ctx,
+        int depth,
+        std::optional<EvaluationError>& error) -> double
     {
         if (error.has_value())
         {
             return 0.0;
         }
-        count_node(counters);
+        count_node(ctx.counters);
+        record_sample_size(ctx.counters, node, depth);
         if (already_made(node.state))
         {
+            count_tier1_made_cut(ctx.counters);
             return node_mass(node);
         }
         if (is_dead(node.state))
         {
+            count_tier1_dead_cut(ctx.counters);
             return 0.0;  // node_mass(node) discarded here, not conserved -- the contract fails in
                           // every layout this node holds, whatever happens next
         }
-        if (tier2_dead(node, options))
+        if (tier2_dead(node, ctx.options))
         {
+            count_tier2_cut(ctx.counters);
             return 0.0;  // same non-conservation as tier 1's dead cut above -- see its own comment
         }
         // is_terminal(node) is never true here, not just its "made" branch: a
@@ -125,17 +224,17 @@ namespace
 
         if (is_declarer_side(node.state, seat))
         {
-            ExpandResult const result = expand_declarer_node(node, pi);
+            ExpandResult const result = expand_declarer_node(node, ctx.pi);
             if (! result.child.has_value())
             {
                 error = EvaluationError{
                     result.error, EvaluationCallback::DeclarerPlay, seat, node.state.known_holdings};
                 return 0.0;
             }
-            return p_make(*result.child, pi, delta, error, counters, options);
+            return p_make(*result.child, ctx, depth + 1, error);
         }
 
-        ExpandDefenderResult const result = expand_defender_node(node, delta);
+        ExpandDefenderResult const result = expand_defender_node(node, ctx.delta);
         if (! result.children.has_value())
         {
             error = EvaluationError{
@@ -146,7 +245,7 @@ namespace
         KahanAccumulator total;
         for (BeliefNode const& child : *result.children)
         {
-            total.add(p_make(child, pi, delta, error, counters, options));
+            total.add(p_make(child, ctx, depth + 1, error));
             if (error.has_value())
             {
                 return 0.0;
@@ -177,10 +276,12 @@ auto tier2_dead(BeliefNode const& node, EvaluateOptions const& options) -> bool
     // layout in this node is dead" from the layouts the node happens to
     // hold; on a sample that is only "every layout *drawn* is dead", which
     // says nothing about every layout in the true space, so a layout that
-    // would have made could simply not have been drawn. is_sample is
-    // always false today -- nothing in this evaluator samples yet -- so
-    // this is a no-op today and load-bearing only once something sets it
-    // true.
+    // would have made could simply not have been drawn. Once a root sample
+    // size is requested and actually binds, is_sample propagates true to
+    // every descendant through both expansion paths, switching this cut
+    // off across the whole tree from that point on -- stricter than
+    // algorithm.md, which forbids the cut only at or below a replenishment
+    // floor this evaluator does not yet have.
     if (node.is_sample)
     {
         return false;
@@ -209,14 +310,23 @@ auto evaluate(
     DefenderStrategy const& delta,
     EvaluateOptions const& options) -> EvaluationResult
 {
-    std::optional<BeliefNode> const root_opt = make_root(root_layout, declarer, tricks_needed, source);
-    if (! root_opt.has_value())
+    RootConstructionResult const root_result = make_root(
+        root_layout,
+        declarer,
+        tricks_needed,
+        source,
+        RootOptions{.sample_size = options.sample_size, .scan_budget = options.scan_budget});
+    if (! root_result.node.has_value())
     {
         EvaluationError const error{
-            ValidationError::None, EvaluationCallback::RootConstruction, declarer, root_layout};
+            ValidationError::None,
+            EvaluationCallback::RootConstruction,
+            declarer,
+            root_layout,
+            root_result.failure};
         return EvaluationResult{{}, error};
     }
-    BeliefNode const& root = *root_opt;
+    BeliefNode const& root = *root_result.node;
 
     std::optional<EvaluationError> error;
     EvaluationValue value{};
@@ -225,11 +335,13 @@ auto evaluate(
     // sites below are unconditional and cost nothing when off — count_node()
     // itself is the single place that checks the flag (via nullness).
     EvaluationCounters* const counters_ptr = options.collect_counters ? &counters : nullptr;
+    SearchContext const ctx{pi, delta, options, counters_ptr};
 
     // The root's own visit — same site p_make() counts a node at, but
     // outside p_make() because the root's dispatch happens here rather than
     // through a p_make() call on itself.
     count_node(counters_ptr);
+    record_sample_size(counters_ptr, root, /*depth=*/0);
 
     if (already_made(root.state))
     {
@@ -240,6 +352,7 @@ auto evaluate(
         // root_children stays empty for the same reason it does at a
         // terminal root: no first-card decision exists to report
         // alternatives for.
+        count_tier1_made_cut(counters_ptr);
         value.p_make = node_mass(root);
     }
     else if (is_dead(root.state))
@@ -249,6 +362,7 @@ auto evaluate(
         // p_make stays 0.0 and root_children stays empty -- there is no
         // point reporting alternatives for a first card when every one of
         // them leads to the same impossible outcome.
+        count_tier1_dead_cut(counters_ptr);
         value.p_make = 0.0;
     }
     else if (tier2_dead(root, options))
@@ -256,6 +370,7 @@ auto evaluate(
         // Tier 2's cut, mirrored here for the same reason: every layout
         // the root holds is dead by the injected bound, under the
         // caller's own double-dummy-optimal declaration.
+        count_tier2_cut(counters_ptr);
         value.p_make = 0.0;
     }
     else if (is_terminal(root))
@@ -321,8 +436,8 @@ auto evaluate(
             for (std::size_t i = 0; i < legal.size(); ++i)
             {
                 double const candidate_value = (i == chosen_index)
-                    ? p_make(*chosen.child, pi, delta, error, counters_ptr, options)
-                    : p_make(other_children[other_i++], pi, delta, error, counters_ptr, options);
+                    ? p_make(*chosen.child, ctx, /*depth=*/1, error)
+                    : p_make(other_children[other_i++], ctx, /*depth=*/1, error);
                 if (error.has_value())
                 {
                     return EvaluationResult{{}, error};
@@ -351,7 +466,7 @@ auto evaluate(
             value.root_children.reserve(expanded.children->size());
             for (BeliefNode const& child : *expanded.children)
             {
-                double const child_value = p_make(child, pi, delta, error, counters_ptr, options);
+                double const child_value = p_make(child, ctx, /*depth=*/1, error);
                 if (error.has_value())
                 {
                     return EvaluationResult{{}, error};

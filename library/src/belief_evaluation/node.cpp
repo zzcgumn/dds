@@ -102,12 +102,25 @@ auto make_root(
     Deal const& root_layout,
     int declarer,
     int tricks_needed,
-    LayoutSource const& source) -> std::optional<BeliefNode>
+    LayoutSource const& source,
+    RootOptions const& options) -> RootConstructionResult
 {
     std::optional<std::uint64_t> const size = source.size();
     if (! size.has_value())
     {
-        return std::nullopt;
+        return RootConstructionResult{std::nullopt, RootFailure::SourceNotEnumerable};
+    }
+
+    // Checked before the scan touches source.at() at all: a sample_size of
+    // exactly 0 would otherwise satisfy the loop's own break condition
+    // (node.layouts.size() >= *sample_size, trivially true at 0) on its
+    // very first check, producing an empty node whose outcome computes to
+    // SampleFilled and whose failure would then read NoLayoutSurvived --
+    // misreporting a degenerate request as "the source was checked and had
+    // nothing consistent in it," which it was never given the chance to be.
+    if (options.sample_size.has_value() && *options.sample_size == 0)
+    {
+        return RootConstructionResult{std::nullopt, RootFailure::SampleSizeZero};
     }
 
     int const dummy = (declarer + 2) % DDS_HANDS;
@@ -129,9 +142,30 @@ auto make_root(
     // growth is safe here: nothing holds a reference into node.layouts
     // until after this function returns a fully-built node, so growth
     // during construction cannot invalidate anything a caller has seen.
-    for (std::uint64_t i = 0; i < *size; ++i)
+    //
+    // Scanned from index 0 regardless of whether options.sample_size or
+    // options.scan_budget is set: any randomness in which layouts get
+    // drawn is the source's own ordering, never this loop's -- see
+    // RootOptions and this function's own doxygen.
+    //
+    // sample_size is checked before scan_budget at every step, so a
+    // layout that fills the sample is never charged against the budget --
+    // the priority this function's own doxygen documents for when both
+    // would bind at once.
+    std::uint64_t scanned = 0;
+    std::uint64_t i = 0;
+    for (; i < *size; ++i)
     {
+        if (options.sample_size.has_value() && node.layouts.size() >= *options.sample_size)
+        {
+            break;
+        }
+        if (options.scan_budget.has_value() && scanned >= *options.scan_budget)
+        {
+            break;
+        }
         Deal const candidate = source.at(i);
+        ++scanned;
         if (is_consistent(candidate, root_layout, declarer, dummy))
         {
             node.layouts.push_back(candidate);
@@ -139,13 +173,32 @@ auto make_root(
         }
     }
 
+    // Why the scan stopped: the source ran out (i reached *size, whatever
+    // either cap was -- reaching a cap on the very last item still means
+    // there was nothing left to find, not a premature stop), else whichever
+    // cap actually bound, sample_size taking priority to match the loop's
+    // own check order above.
+    ScanOutcome const outcome = (i >= *size)
+        ? ScanOutcome::SourceExhausted
+        : ((options.sample_size.has_value() && node.layouts.size() >= *options.sample_size)
+               ? ScanOutcome::SampleFilled
+               : ScanOutcome::BudgetExhausted);
+
     if (node.layouts.empty())
     {
-        return std::nullopt;
+        RootFailure const failure = (outcome == ScanOutcome::BudgetExhausted)
+            ? RootFailure::ScanBudgetExhausted
+            : RootFailure::NoLayoutSurvived;
+        return RootConstructionResult{std::nullopt, failure};
     }
 
+    // True exactly when the scan stopped because a cap bound, not merely
+    // because one was supplied -- see this function's own doxygen for why
+    // options.sample_size.has_value() alone would be wrong here.
+    node.is_sample = outcome != ScanOutcome::SourceExhausted;
+
     node.kappa = 1.0 / static_cast<double>(node.layouts.size());
-    return node;
+    return RootConstructionResult{std::move(node), RootFailure::None, outcome};
 }
 
 auto node_mass(BeliefNode const& node) -> double

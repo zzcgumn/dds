@@ -229,7 +229,7 @@ TEST_F(DefenderNodeTest, ALayoutSplitIntoTwoChildrenIsAdvancedCorrectlyInBothChi
     be::assert_forms_one_belief_node({layout0, layout1}, North);
 
     be::VectorLayoutSource source({layout0, layout1});
-    be::BeliefNode const node = *be::make_root(layout0, North, /*tricks_needed=*/1, source);
+    be::BeliefNode const node = *be::make_root(layout0, North, /*tricks_needed=*/1, source).node;
     ASSERT_EQ(node.layouts.size(), 2u);  // both layouts survived make_root's filter
 
     be::ScriptedDefender::Key const key0{be::layout_key(layout0, East), ""};
@@ -420,4 +420,25 @@ TEST_F(DefenderNodeTest, RejectsProbabilitiesNotSummingToOne)
     be::ExpandDefenderResult const result = be::expand_defender_node(node, delta);
     EXPECT_FALSE(result.children.has_value());
     EXPECT_EQ(result.error, be::ValidationError::ProbabilitiesDoNotSumToOne);
+}
+
+TEST_F(DefenderNodeTest, RejectsAnEmptyDistributionUnderItsOwnCause)
+{
+    // An empty distribution genuinely does fail
+    // validate_defender_distribution's own sum-to-one check too (zero is
+    // not one), but expand_defender_node draws this distinction before
+    // ever delegating to it -- DistributionEmpty, not
+    // ProbabilitiesDoNotSumToOne -- since at this boundary "you returned
+    // nothing" is the more actionable answer. See
+    // ValidationError::DistributionEmpty's own doxygen for the full
+    // reasoning; DoubleDummyDefenderTest has the same distinction driven
+    // end-to-end through a real solver failure.
+    Deal const layout = make_layout({King, Two}, /*west_club_rank=*/Two);
+    be::BeliefNode const node = make_node({layout}, {1.0}, 1.0);
+    auto const delta = [](be::DefenderQuery const&) -> std::vector<be::WeightedCard> { return {}; };
+
+    be::ExpandDefenderResult const result = be::expand_defender_node(node, delta);
+    EXPECT_FALSE(result.children.has_value());
+    EXPECT_EQ(result.error, be::ValidationError::DistributionEmpty);
+    EXPECT_EQ(result.offending_layout.remainCards[East][Diamonds], layout.remainCards[East][Diamonds]);
 }

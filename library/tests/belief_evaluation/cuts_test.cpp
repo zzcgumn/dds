@@ -302,6 +302,36 @@ TEST_F(AlreadyMadeCutTest, PiIsNotCalledWhenTheContractIsAlreadyMadeAtTheRoot)
     EXPECT_TRUE(result.by_strategy.at(0u).root_children.empty());
 }
 
+TEST_F(AlreadyMadeCutTest, TierCutCountersFireAtTheRootBlockSite)
+{
+    // Same fixture and tricks_needed as
+    // PiIsNotCalledWhenTheContractIsAlreadyMadeAtTheRoot above -- that test
+    // pins the cut firing at the root by call count; this one pins the
+    // same firing by its counter. The cut fires through evaluate()'s own
+    // root-handling block, never reaching a p_make() call at all -- the
+    // site a sweep of p_make() alone would miss. counters_test.cpp's
+    // TierCutCountersDistinguishTheAlreadyMadeCutFromTheOthers has the
+    // p_make()-site half of this counter's own proof.
+    Deal const root_layout = make_two_certain_tricks();
+    be::VectorLayoutSource source({root_layout});
+
+    be::EvaluationResult const result = be::evaluate(
+        root_layout,
+        North,
+        /*tricks_needed=*/0,
+        source,
+        strategy(1),
+        be::single_card_defender,
+        be::EvaluateOptions{.collect_counters = true});
+
+    ASSERT_FALSE(result.error.has_value());
+    be::EvaluationValue const& value = result.by_strategy.at(1u);
+    ASSERT_TRUE(value.counters.has_value());
+    EXPECT_EQ(value.counters->tier1_made_cuts, 1u);
+    EXPECT_EQ(value.counters->tier1_dead_cuts, 0u);
+    EXPECT_EQ(value.counters->tier2_cuts, 0u);
+}
+
 // Tier 1's dead cut, the mirror of the already-made cut above: a node where
 // declarer cannot reach tricks_needed even by winning every remaining trick
 // evaluates to 0.0 without recursing further -- sound unconditionally, same
@@ -412,6 +442,38 @@ TEST_F(DeadCutTest, StopsExpansionAssertedAgainstAOneTrickShortComparison)
     // message).
 }
 
+TEST_F(DeadCutTest, TierCutCountersDistinguishTheDeadCutFromTheOthers)
+{
+    // Same fixture and tricks_needed as this class's own
+    // StopsExpansionAssertedAgainstAOneTrickShortComparison above (the
+    // with_early_cut run: the dead cut fires at node 5, deep in p_make(),
+    // not at the root -- the root here, node 1, is not yet dead either).
+    // Neither of the other two cuts is ever in a position to fire on this
+    // fixture: nothing here is ever already made before it is dead, and no
+    // bound is supplied. This is the "vice versa" half of the proof that
+    // each counter counts its own tier -- counters_test.cpp's own
+    // TierCutCountersDistinguishTheAlreadyMadeCutFromTheOthers is the
+    // other half.
+    Deal const root_layout = make_east_wins_first_trick();
+    be::VectorLayoutSource source({root_layout});
+
+    be::EvaluationResult const result = be::evaluate(
+        root_layout,
+        North,
+        /*tricks_needed=*/2,
+        source,
+        strategy(1),
+        be::single_card_defender,
+        be::EvaluateOptions{.collect_counters = true});
+
+    ASSERT_FALSE(result.error.has_value());
+    be::EvaluationValue const& value = result.by_strategy.at(1u);
+    ASSERT_TRUE(value.counters.has_value());
+    EXPECT_EQ(value.counters->tier1_dead_cuts, 1u);
+    EXPECT_EQ(value.counters->tier1_made_cuts, 0u);
+    EXPECT_EQ(value.counters->tier2_cuts, 0u);
+}
+
 TEST_F(DeadCutTest, PiAndDeltaAreNotCalledWhenTheRootIsAlreadyDead)
 {
     // tricks_needed = 4: no suit here has four tricks in it at all
@@ -437,6 +499,34 @@ TEST_F(DeadCutTest, PiAndDeltaAreNotCalledWhenTheRootIsAlreadyDead)
     // RecordingDeclarerStrategy::as_strategy() fixes id = 0.
     EXPECT_EQ(result.by_strategy.at(0u).p_make, 0.0);
     EXPECT_TRUE(result.by_strategy.at(0u).root_children.empty());
+}
+
+TEST_F(DeadCutTest, TierCutCountersFireAtTheRootBlockSite)
+{
+    // Same fixture and tricks_needed as
+    // PiAndDeltaAreNotCalledWhenTheRootIsAlreadyDead above -- that test
+    // pins the cut firing at the root by call count; this one pins the
+    // same firing by its counter. The cut fires through evaluate()'s own
+    // root-handling block, never reaching a p_make() call at all --
+    // the site a sweep of p_make() alone would miss.
+    Deal const root_layout = make_east_wins_first_trick();
+    be::VectorLayoutSource source({root_layout});
+
+    be::EvaluationResult const result = be::evaluate(
+        root_layout,
+        North,
+        /*tricks_needed=*/4,
+        source,
+        strategy(1),
+        be::single_card_defender,
+        be::EvaluateOptions{.collect_counters = true});
+
+    ASSERT_FALSE(result.error.has_value());
+    be::EvaluationValue const& value = result.by_strategy.at(1u);
+    ASSERT_TRUE(value.counters.has_value());
+    EXPECT_EQ(value.counters->tier1_dead_cuts, 1u);
+    EXPECT_EQ(value.counters->tier1_made_cuts, 0u);
+    EXPECT_EQ(value.counters->tier2_cuts, 0u);
 }
 
 // The LayoutBound injection seam: a caller-supplied double-dummy upper
@@ -535,6 +625,40 @@ TEST_F(TierTwoCutTest, FiresWhenEveryLayoutIsDeadAndTheDeclarationIsMade)
     ASSERT_FALSE(result.error.has_value());
     EXPECT_EQ(result.by_strategy.at(1u).p_make, 0.0);
     EXPECT_TRUE(result.by_strategy.at(1u).root_children.empty());
+}
+
+TEST_F(TierTwoCutTest, TierCutCountersFireAtTheRootBlockSite)
+{
+    // Same fixture, bound and declaration as
+    // FiresWhenEveryLayoutIsDeadAndTheDeclarationIsMade above -- that test
+    // pins the cut's value; this one pins the same firing by its counter.
+    // Both layouts are dead by the bound before a single card is played,
+    // so the cut fires through evaluate()'s own root-handling block, never
+    // reaching a p_make() call at all -- the site a sweep of p_make()
+    // alone would miss.
+    Deal const layout_a = make_layout_a();
+    Deal const layout_b = make_layout_b();
+    be::VectorLayoutSource source({layout_a, layout_b});
+    be::ScriptedBound scripted({{layout_a, 0}, {layout_b, 0}});
+
+    be::EvaluationResult const result = be::evaluate(
+        layout_a,
+        North,
+        /*tricks_needed=*/1,
+        source,
+        strategy(1),
+        merging_delta,
+        be::EvaluateOptions{
+            .collect_counters = true,
+            .bound = scripted.as_bound(),
+            .delta_is_double_dummy_optimal = true});
+
+    ASSERT_FALSE(result.error.has_value());
+    be::EvaluationValue const& value = result.by_strategy.at(1u);
+    ASSERT_TRUE(value.counters.has_value());
+    EXPECT_EQ(value.counters->tier2_cuts, 1u);
+    EXPECT_EQ(value.counters->tier1_made_cuts, 0u);
+    EXPECT_EQ(value.counters->tier1_dead_cuts, 0u);
 }
 
 
@@ -746,7 +870,7 @@ TEST_F(TierTwoCutTest, StopsAtTheFirstLiveLayoutWithoutQueryingTheRest)
     // before trusting the early-exit assertion below -- see the fixture
     // comment above for why this is checked directly rather than assumed.
     std::optional<be::BeliefNode> const root =
-        be::make_root(layout_a, North, /*tricks_needed=*/1, source);
+        be::make_root(layout_a, North, /*tricks_needed=*/1, source).node;
     ASSERT_TRUE(root.has_value());
     ASSERT_EQ(root->layouts.size(), 2u);
 
@@ -826,13 +950,104 @@ TEST_F(TierTwoCutTest, PiAndDeltaAreNotCalledWhenTheRootIsDeadByTheBound)
     EXPECT_EQ(result.by_strategy.at(0u).p_make, 0.0);
 }
 
+// PredicateBound: the depth-independent alternative to ScriptedBound (see
+// test_support.hpp for the full rationale). ScriptedBound's own exact-Deal
+// matching cannot serve a fixture spanning more than one ply -- each play
+// produces a genuinely different Deal, so a table entry scripted for the
+// root answers nothing one ply down, and tier2_dead() is checked at every
+// node. Confirmed directly: scripting only this fixture's own root layout
+// into a ScriptedBound and driving it through evaluate() hits
+// ScriptedBound's ADD_FAILURE the moment a second, different Deal is
+// queried, one ply in (see the commit message).
+
+class PredicateBoundTest : public ::testing::Test
+{
+};
+
+namespace
+{
+    constexpr int Hearts = 1;
+
+    /// North holds two certain winners spanning two separate tricks (AK of
+    /// spades, AK of hearts) -- North's own remaining card count is 4 for
+    /// every node in trick 1, then drops once North plays its first card
+    /// (winning trick 1 and leading trick 2), giving two genuinely
+    /// different regimes for a predicate to distinguish without a table
+    /// entry per node. East on lead (defender root): East -> South -> West
+    /// -> North, fully deterministic under single_card_defender /
+    /// single_card_declarer_play (each seat holds exactly one card per
+    /// suit it can legally play at every step).
+    auto make_two_trick_declarer_certain_win() -> Deal
+    {
+        Deal deal{};
+        deal.trump = DDS_NOTRUMP;
+        deal.first = East;
+        deal.remainCards[North][Spades] = be::holding({Ace, King});
+        deal.remainCards[North][Hearts] = be::holding({Ace, King});
+        deal.remainCards[East][Spades] = be::holding({Queen, Jack});
+        deal.remainCards[East][Hearts] = be::holding({Queen, Jack});
+        deal.remainCards[South][Spades] = be::holding({Two, Three});
+        deal.remainCards[South][Hearts] = be::holding({Two, Three});
+        deal.remainCards[West][Spades] = be::holding({Four, Five});
+        deal.remainCards[West][Hearts] = be::holding({Four, Five});
+        return deal;
+    }
+}
+
+TEST_F(PredicateBoundTest, AnswersEveryNodeInATwoTrickFixtureWithoutATableEntryPerNode)
+{
+    Deal const root_layout = make_two_trick_declarer_certain_win();
+    be::assert_equal_hand_sizes(root_layout);
+    be::VectorLayoutSource source({root_layout});
+    // Two predicates, tried in order: "North still holds every one of its
+    // four cards" (true for every node in trick 1) claims a bound of 2,
+    // comfortably not less than still_needed (2, since nothing is won
+    // yet); the catch-all claims 1, comfortably not less than still_needed
+    // (1, once trick 1 is won) for every node in trick 2. Both values are
+    // live, so this fixture's tier2 cut never actually fires here -- this
+    // test is about the double answering every node correctly, not about
+    // provoking the cut (TierTwoCutTest's own tests already cover firing).
+    be::PredicateBound predicate_bound(
+        {{[](Deal const& layout) -> bool { return be::card_count(layout, North) >= 4; }, 2},
+         {[](Deal const&) -> bool { return true; }, 1}});
+
+    be::EvaluationResult const result = be::evaluate(
+        root_layout,
+        North,
+        /*tricks_needed=*/2,
+        source,
+        strategy(1),
+        be::single_card_defender,
+        be::EvaluateOptions{
+            .bound = predicate_bound.as_bound(), .delta_is_double_dummy_optimal = true});
+
+    ASSERT_FALSE(result.error.has_value());
+    // Both tricks are certain, so the whole recursion is one deterministic
+    // path (single root layout, kappa = 1, p = 1 throughout, no genuine
+    // choice anywhere) reaching node_mass = 1.0 the instant trick 2 is
+    // won -- same value the cut being suppressed the whole way would
+    // produce, since nothing here is ever actually dead by the bound.
+    EXPECT_EQ(result.by_strategy.at(1u).p_make, 1.0);
+    // Hand-counted: tier2_dead() is checked at every node up to and
+    // including the one right before North's own winning play in trick 2
+    // (8 nodes total -- East/South/West/North's turns in trick 1, then
+    // North/East/South/West's turns in trick 2) and not at the 9th node,
+    // where the already-made cut fires first and consumes it. The first
+    // four queries see North holding all four of its cards (trick 1, the
+    // first predicate's own branch); the last four see fewer (trick 2, the
+    // catch-all's branch) -- two genuinely different plies answered
+    // through the same two-entry table, which is the whole point.
+    ASSERT_EQ(predicate_bound.queries().size(), 8u);
+    EXPECT_EQ(be::card_count(predicate_bound.queries().front(), North), 4);
+    EXPECT_LT(be::card_count(predicate_bound.queries().back(), North), 4);
+}
+
 // The sampling gate: tier2_dead() is gated on !node.is_sample; neither
-// tier-1 cut is. Nothing in the evaluator sets is_sample yet (make_root()
-// always leaves it false), so these tests construct a BeliefNode directly
-// -- a state the evaluator itself cannot yet produce today, deliberately,
-// per tier2_dead()'s own doxygen. already_made()/is_dead() are exposed the
-// same way is_terminal()/terminal_value() are, precisely so a test can do
-// this.
+// tier-1 cut is. These tests construct a BeliefNode directly rather than
+// driving is_sample true through evaluate() (which make_root can do now),
+// to isolate the predicate itself from the rest of the recursion.
+// already_made()/is_dead() are exposed the same way is_terminal()/
+// terminal_value() are, precisely so a test can do this.
 
 class SamplingGateTest : public ::testing::Test
 {
@@ -850,7 +1065,7 @@ TEST_F(SamplingGateTest, Tier2DoesNotFireOnASampledNodeEvenWhenEveryLayoutIsDead
     node.layouts = {layout};
     node.p = {1.0};
     node.kappa = 1.0;
-    node.is_sample = true;  // the state the evaluator cannot yet produce
+    node.is_sample = true;  // still constructed by hand here to isolate the predicate
 
     auto const bound = [](Deal const&) -> int { return 0; };  // dead, if it were consulted
     be::EvaluateOptions const options{.bound = bound, .delta_is_double_dummy_optimal = true};
