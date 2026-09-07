@@ -18,6 +18,7 @@ namespace
     constexpr int Ace = 14;
 
     constexpr int North = 0;  // declarer
+    constexpr int East = 1;   // a defender: (declarer + 1) % DDS_HANDS
     constexpr int South = 2;  // dummy
     constexpr int West = 3;   // a defender
 
@@ -40,6 +41,10 @@ namespace
         node.state.known_holdings = layout;
         node.layouts = {layout};
         node.p = {1.0};
+        node.root_keys = {be::layout_key(layout, East)};  // (declarer + 1) % DDS_HANDS,
+                                                            // matching make_root's own
+                                                            // fixed-seat convention -- see
+                                                            // node.hpp's own doxygen.
         node.kappa = 1.0;
         return node;
     }
@@ -113,6 +118,22 @@ TEST_F(DeclarerNodeTest, TheChildsBeliefSetAndWeightsCarryOverFromTheParent)
     EXPECT_EQ(child.layouts[0].remainCards[North][0], expected.remainCards[North][0]);
     EXPECT_EQ(child.layouts[0].currentTrickSuit[0], expected.currentTrickSuit[0]);
     EXPECT_EQ(child.layouts[0].currentTrickRank[0], expected.currentTrickRank[0]);
+}
+
+TEST_F(DeclarerNodeTest, RootKeysCarryOverUnchangedFromTheParent)
+{
+    // make_declarer_children copies root_keys whole -- declarer's own play
+    // neither filters nor renames any layout's root-space identity, unlike
+    // p or layouts.
+    be::BeliefNode const node = make_declarer_on_play_node();
+    be::RecordingDeclarerStrategy recorder(be::Card{0, Ace});
+
+    be::ExpandResult const result = be::expand_declarer_node(node, recorder.as_strategy());
+
+    ASSERT_TRUE(result.child.has_value());
+    be::BeliefNode const& child = *result.child;
+    ASSERT_EQ(child.root_keys.size(), child.layouts.size());
+    EXPECT_EQ(child.root_keys, node.root_keys);
 }
 
 TEST_F(DeclarerNodeTest, ACardNotHeldIsRejectedThroughValidateDeclarerCard)

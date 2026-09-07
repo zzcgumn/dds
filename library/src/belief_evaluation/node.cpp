@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include <belief_evaluation/kahan.hpp>
+#include <belief_evaluation/layout_key.hpp>
 #include <belief_evaluation/rank_map.hpp>
 #include <utility/constants.h>
 
@@ -27,55 +28,6 @@ namespace
         return pool;
     }
 
-    auto is_consistent(Deal const& candidate, Deal const& root, int declarer, int dummy) -> bool
-    {
-        if (candidate.trump != root.trump || candidate.first != root.first)
-        {
-            return false;
-        }
-        for (int i = 0; i < 3; ++i)
-        {
-            if (candidate.currentTrickSuit[i] != root.currentTrickSuit[i]
-                || candidate.currentTrickRank[i] != root.currentTrickRank[i])
-            {
-                return false;
-            }
-        }
-
-        for (int suit = 0; suit < DDS_SUITS; ++suit)
-        {
-            if (candidate.remainCards[declarer][suit] != root.remainCards[declarer][suit]
-                || candidate.remainCards[dummy][suit] != root.remainCards[dummy][suit])
-            {
-                return false;
-            }
-            if (defender_pool(candidate, declarer, dummy, suit)
-                != defender_pool(root, declarer, dummy, suit))
-            {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /// The cards already played to root's trick in progress (0..3 of
-    /// them), in order — the only prior history recoverable from a Deal:
-    /// once a trick resolves, currentTrick* is cleared and no record of
-    /// what was played to it survives, so a root that starts after one or
-    /// more completed tricks can never have those tricks reconstructed
-    /// from root_layout alone. Rank 0 is the empty-slot sentinel, matching
-    /// validation.cpp's led_suit() and trick.cpp's played_count().
-    auto history_for(Deal const& root_layout) -> PlayTraceBin
-    {
-        PlayTraceBin history{};
-        while (history.number < 3 && root_layout.currentTrickRank[history.number] != 0)
-        {
-            history.suit[history.number] = root_layout.currentTrickSuit[history.number];
-            history.rank[history.number] = root_layout.currentTrickRank[history.number];
-            ++history.number;
-        }
-        return history;
-    }
 
     /// `root`'s declarer and dummy holdings verbatim; each defender's entry
     /// replaced by the union pool the two defenders hold between them, per
@@ -96,6 +48,64 @@ namespace
         }
         return result;
     }
+}
+
+auto is_consistent(Deal const& candidate, Deal const& root, int declarer, int dummy) -> bool
+{
+    if (candidate.trump != root.trump || candidate.first != root.first)
+    {
+        return false;
+    }
+    for (int i = 0; i < 3; ++i)
+    {
+        if (candidate.currentTrickSuit[i] != root.currentTrickSuit[i]
+            || candidate.currentTrickRank[i] != root.currentTrickRank[i])
+        {
+            return false;
+        }
+    }
+
+    for (int suit = 0; suit < DDS_SUITS; ++suit)
+    {
+        if (candidate.remainCards[declarer][suit] != root.remainCards[declarer][suit]
+            || candidate.remainCards[dummy][suit] != root.remainCards[dummy][suit])
+        {
+            return false;
+        }
+        if (defender_pool(candidate, declarer, dummy, suit) != defender_pool(root, declarer, dummy, suit))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+auto history_for(Deal const& root_layout) -> PlayTraceBin
+{
+    PlayTraceBin history{};
+    while (history.number < 3 && root_layout.currentTrickRank[history.number] != 0)
+    {
+        history.suit[history.number] = root_layout.currentTrickSuit[history.number];
+        history.rank[history.number] = root_layout.currentTrickRank[history.number];
+        ++history.number;
+    }
+    return history;
+}
+
+auto root_observation_state(Deal const& root_layout, int declarer, int tricks_needed) -> ObservationState
+{
+    int const dummy = (declarer + 2) % DDS_HANDS;
+
+    ObservationState state{};
+    state.trump = root_layout.trump;
+    state.first = root_layout.first;
+    state.history = history_for(root_layout);
+    state.declarer = declarer;
+    state.tricks_needed = tricks_needed;
+    state.tricks_won_by_declarer = 0;
+    state.known_holdings = known_holdings_for(root_layout, declarer, dummy);
+    state.ranks = make_rank_map(root_layout);
+    return state;
 }
 
 auto make_root(
@@ -126,14 +136,7 @@ auto make_root(
     int const dummy = (declarer + 2) % DDS_HANDS;
 
     BeliefNode node{};
-    node.state.trump = root_layout.trump;
-    node.state.first = root_layout.first;
-    node.state.history = history_for(root_layout);
-    node.state.declarer = declarer;
-    node.state.tricks_needed = tricks_needed;
-    node.state.tricks_won_by_declarer = 0;
-    node.state.known_holdings = known_holdings_for(root_layout, declarer, dummy);
-    node.state.ranks = make_rank_map(root_layout);
+    node.state = root_observation_state(root_layout, declarer, tricks_needed);
 
     // Not reserved to *size: source.size() is user-supplied and may be far
     // larger than the number of layouts that actually survive filtering
@@ -170,6 +173,11 @@ auto make_root(
         {
             node.layouts.push_back(candidate);
             node.p.push_back(1.0);
+            // Root-space key, computed from the candidate before any card is
+            // played and with a fixed defender seat -- see
+            // BeliefNode::root_keys' own doxygen for why both of those must
+            // hold everywhere this is computed.
+            node.root_keys.push_back(layout_key(candidate, (declarer + 1) % DDS_HANDS));
         }
     }
 

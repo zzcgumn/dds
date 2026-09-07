@@ -81,12 +81,13 @@ using LayoutBound = std::function<int(Deal const&)>;
 /// retained tree — a belief set kept at every node — is affordable only
 /// when asked for; see EvaluationValue::retained_root.
 ///
-/// Six fields now, and growing as later capabilities add their own — this
-/// stays a flat struct of independently-defaulted options rather than
-/// acquiring internal structure of its own. `sample_size` and
-/// `scan_budget` are the first pair that are not independent of each
-/// other (a budget with no sample size just caps a scan that would have
-/// stopped at the source's own end anyway) — noted here rather than
+/// Seven fields now, and growing as later capabilities add their own —
+/// this stays a flat struct of independently-defaulted options rather than
+/// acquiring internal structure of its own. `sample_size`, `scan_budget`
+/// and `replenish_below` are a trio that are not independent of each other
+/// (a budget with no sample size just caps a scan that would have stopped
+/// at the source's own end anyway; a replenishment threshold with no
+/// sample size has no target to top up to) — noted here rather than
 /// treated as a reason to restructure, since each field's own doxygen
 /// already states the coupling and the struct still reads clearly. If a
 /// future field stops that being true, that is worth revisiting then, not
@@ -147,15 +148,85 @@ struct EvaluateOptions
     /// live (see `LayoutSource::at`'s doxygen), not here.
     std::optional<std::uint64_t> sample_size;
 
-    /// Cap the number of `source.at()` calls the root's own scan may make,
-    /// threaded through to `make_root` as `RootOptions::scan_budget` — see
-    /// that field for what it counts and, importantly, that it applies
-    /// whether or not `sample_size` is set: a `scan_budget` narrower than
-    /// the source binds and degrades the root on its own. A budget that
-    /// binds is not an error — see `RootFailure::ScanBudgetExhausted` for
-    /// the one case that still is (nothing survived before the budget ran
-    /// out).
+    /// Cap the number of `source.at()` calls a single scan may make — the
+    /// root's own, via `RootOptions::scan_budget` (see that field for what
+    /// it counts), and, identically, any node-local replenishment scan:
+    /// this is a **per-scan** cap, not a per-run total, so a node-local
+    /// scan starts a fresh budget of its own rather than sharing what the
+    /// root already spent. Applies whether or not `sample_size` is set: a
+    /// `scan_budget` narrower than the source binds and degrades the root
+    /// on its own. A budget that binds is not an error — see
+    /// `RootFailure::ScanBudgetExhausted` for the one case that still is
+    /// (nothing survived before the budget ran out).
     std::optional<std::uint64_t> scan_budget;
+
+    /// Replenish a node whose `layouts.size()` is below this, topping it
+    /// back up towards `sample_size` from `source` before any cut is
+    /// evaluated at it and before any `BeliefView` is built there. Absent
+    /// by default -- which is what keeps every existing behaviour
+    /// byte-for-byte unchanged: with no threshold, the recursion never
+    /// scans past the root and never touches a node's `kappa`.
+    ///
+    /// The trigger reads **only** `node.layouts.size()` — nothing about
+    /// `is_sample`, how many layouts are already made or dead, or any
+    /// other property of the node. algorithm.md is explicit that the rule
+    /// to trigger replenishment must depend only on sample size or total
+    /// probability mass, since anything else biases the result; `is_sample`
+    /// specifically is both redundant (an exhaustive node's count is what
+    /// it is, so a caller who sets this with no `sample_size` simply gets a
+    /// scan that finds nothing new) and one more thing that would need to
+    /// stay correct as a node's own scan can flip it mid-search.
+    ///
+    /// **Coupled with `sample_size`, not independent of it**: there is no
+    /// separate top-up target — a node is topped back up towards
+    /// `sample_size` itself, since a caller who already said how large a
+    /// sample they want should not have to say it twice. If `sample_size`
+    /// is absent, this field is treated as absent too: a replenishment
+    /// threshold with no target to top up to has nothing to do, and the
+    /// scan never runs. Reuses `scan_budget` as each individual
+    /// replenishment scan's own cap (see that field) rather than adding a
+    /// third coupled field for it.
+    ///
+    /// A value **above** `sample_size` is accepted, not rejected, but is
+    /// degenerate: a node's own count can never *exceed* `sample_size`
+    /// (that is what tops it up to), so the threshold is met at every node
+    /// on entry and the trigger condition holds every time -- but that is
+    /// not "fires for free every time". Three cases, and only one of them
+    /// is genuinely free:
+    ///
+    /// - **`node.no_more_available` is already set.** Checked before the
+    ///   scan and short-circuits it entirely -- zero `source.at()` calls,
+    ///   and *not* recorded in `EvaluationCounters::replenishment_by_depth`
+    ///   at all, not even as an attempt. See that field's own doxygen.
+    /// - **`wanted = sample_size - current` is zero** (a node whose count
+    ///   still equals `sample_size` unchanged, which holds through any
+    ///   number of declarer plies but stops holding the moment a defender
+    ///   split has first dropped a node's count below it). `replenish_node`
+    ///   computes `wanted` and calls `scan_for_replenishment` regardless of
+    ///   its value -- unlike the `no_more_available` case above, there is no
+    ///   short-circuit for `wanted == 0` in `replenish_node` itself. But
+    ///   `scan_for_replenishment` has its own early return for exactly this
+    ///   input (see that function's own doxygen), so no `source.size()`
+    ///   call and no exclusion-set build happen either -- the scan returns
+    ///   immediately at zero `source.at()` calls, and *is* recorded as an
+    ///   attempt (`at_calls == 0`, `succeeded == false`).
+    /// - **`wanted > 0`**: a real, possibly expensive, node-local scan runs
+    ///   and is recorded as an attempt. This includes the case where the
+    ///   scan ends in `SourceExhausted` having found nothing -- that scan
+    ///   still spent real `at()` calls reaching the end of `source`; it is
+    ///   not a fourth free case.
+    ///
+    /// So this setting does not make replenishment free in general: it
+    /// makes the trigger condition true at every node, with real cost
+    /// wherever a split has already happened, the source still has
+    /// candidates to offer, and `no_more_available` has not already ruled
+    /// the path out. A reader of `EvaluationCounters::replenishment_by_depth`
+    /// should not read `attempted` as "the trigger condition held": a
+    /// `no_more_available` short-circuit holds the condition but is not
+    /// counted; `attempted` counts only firings that actually called
+    /// `scan_for_replenishment`, and even among those `at_calls` is what
+    /// distinguishes a free `wanted == 0` return from a real scan.
+    std::optional<std::uint64_t> replenish_below;
 };
 
 /// Per-depth aggregate of `node.layouts.size()` across every node reached
@@ -177,6 +248,32 @@ struct DepthSampleStats
     std::uint64_t layout_min = 0;  ///< the smallest node.layouts.size() seen at this depth; meaningless if nodes == 0
 };
 
+/// Per-depth aggregate of every node-local replenishment scan attempted at
+/// that depth. Follows `DepthSampleStats`' own precedent -- one struct per
+/// depth holding several related counts, not four parallel vectors.
+///
+/// `attempted` and `succeeded` are both counted, not folded into one,
+/// because they answer different questions: `attempted - succeeded` is
+/// exactly how often a scan ran and found nothing (the number that says
+/// whether `BeliefNode::no_more_available` is doing real work or is cheap
+/// insurance that rarely bites); `succeeded` against `layouts_added` gives
+/// the average top-up size. `at_calls` sums every such scan's own
+/// `ScanResult::at_calls`, counted the same way `RootOptions::scan_budget`
+/// counts them, so a scan-to-hit ratio (`at_calls` per `layouts_added`) is
+/// derivable from this alone -- deliberately not stored as a ratio itself,
+/// since a ratio cannot be summed across depths or runs and ratio-shaped
+/// data should not be either. Never incremented at the root: replenishment
+/// does not happen there (`make_root` just built it from a fresh scan), so
+/// depth 0's entry, if it exists at all (from `sample_size_by_depth`
+/// sharing the same indexing), is structurally all zero.
+struct DepthReplenishmentStats
+{
+    std::uint64_t attempted = 0;      ///< replenishment scans that actually ran at this depth
+    std::uint64_t succeeded = 0;      ///< of those, how many added at least one layout
+    std::uint64_t layouts_added = 0;  ///< total layouts added across every scan at this depth
+    std::uint64_t at_calls = 0;       ///< total source.at() calls across every scan at this depth
+};
+
 /// Instrumentation `evaluate()` can report about its own run, populated
 /// only when EvaluateOptions::collect_counters is set — see
 /// EvaluationValue::counters. Nothing here is read back into `p_make`;
@@ -184,12 +281,10 @@ struct DepthSampleStats
 ///
 /// This is the module's shared instrumentation mechanism, not a type
 /// specific to whatever fills it in first: node count, cut counts by
-/// tier, and sample size by depth (`DepthSampleStats`, above) all live
-/// here. Later additions belong here too rather than in a parallel
-/// mechanism of their own — replenishment count and scan-to-hit, each
-/// broken out by recursion depth, are the known future examples, arriving
-/// as their own `std::vector<...>` members indexed by depth alongside
-/// `sample_size_by_depth` below, not a reshaping of this type.
+/// tier, sample size by depth (`DepthSampleStats`), and replenishment
+/// counts and scan-to-hit by depth (`DepthReplenishmentStats`) all live
+/// here, each arriving as its own member rather than reshaping the type
+/// that came before it. A later addition belongs here too, the same way.
 struct EvaluationCounters
 {
     /// Every BeliefNode reached and evaluated for a value — terminal or
@@ -229,6 +324,16 @@ struct EvaluationCounters
     /// on the exhaustive path too, where it is a fact about the tree's own
     /// shape rather than about a sample.
     std::vector<DepthSampleStats> sample_size_by_depth;
+
+    /// Index i is depth i's own DepthReplenishmentStats, same indexing as
+    /// `sample_size_by_depth`, grown on demand the same way and for the
+    /// same reason (a trailing zero-entry must never be confused with
+    /// "nothing went that deep" -- an index beyond `size() - 1` is what
+    /// means that here too). Populated whether or not any scan at that
+    /// depth actually found anything; an unpopulated depth (index beyond
+    /// `size() - 1`) means replenishment was never even attempted there,
+    /// which is different from attempting and finding nothing.
+    std::vector<DepthReplenishmentStats> replenishment_by_depth;
 };
 
 /// `P_make` for one declarer strategy against one defender strategy, plus
@@ -315,13 +420,19 @@ auto is_dead(ObservationState const& state) -> bool;
 /// whether the node is a full space or a sample of one. This cut instead
 /// concludes "every layout in this node is dead" from the layouts the node
 /// happens to hold; on a sample that is only "every layout *drawn* is
-/// dead", which says nothing about every layout in the true space. The
-/// moment a root is a genuine sample, `is_sample` propagates true to every
-/// child through both expansion paths, so this gate is fully engaged
-/// across the whole tree beneath it -- stricter than
-/// `docs/replenished_belief_evaluation/algorithm.md`, which forbids early
-/// cuts only at or below a replenishment floor this evaluator does not yet
-/// have.
+/// dead", which says nothing about every layout in the true space. A root
+/// that is a genuine sample propagates `is_sample = true` to every child
+/// through both expansion paths, switching this gate off from there down
+/// -- except at a node whose own replenishment scan reaches
+/// `ScanOutcome::SourceExhausted`, which sets `is_sample` back to `false`
+/// there (see that field's own doxygen): the gate fires again at exactly
+/// such a node, through this same unchanged condition, because it
+/// genuinely holds the whole of its own remaining space and is no longer
+/// a sample by any honest reading of the flag. This is not a refinement to
+/// a replenishment floor -- `docs/replenished_belief_evaluation/algorithm.md`
+/// permits early cuts once a node reaches such a floor, and this gate does
+/// not track one; it only ever asks the one question `! node.is_sample`
+/// already asks, which happens to become true here too.
 ///
 /// Stops at the first live layout (`bound(layout) >=` what is still
 /// needed) rather than calling `bound` for every layout: each call is a
@@ -342,11 +453,17 @@ auto tier2_dead(BeliefNode const& node, EvaluateOptions const& options) -> bool;
 /// `make_root` builds from `source`: every layout consistent with
 /// `root_layout` by default, or — if `options.sample_size` is supplied — a
 /// bounded prefix of them (see `EvaluateOptions::sample_size` and
-/// `make_root`'s own doxygen). No replenishment: a sampled root's layout
-/// count only ever shrinks as defenders play. Early cuts (already_made(),
-/// is_dead(), tier2_dead() above) skip subtrees that are guaranteed to
-/// contribute exactly zero to the result — none of them change any answer;
-/// see `specs/replenished-belief-evaluation.md` for what makes each sound.
+/// `make_root`'s own doxygen). If `options.replenish_below` is also set, a
+/// node whose own layout count falls below it is topped back up from
+/// `source` before it is evaluated further — see that field's own doxygen
+/// for the trigger and `EvaluationCounters`' replenishment fields
+/// (`replenishment_by_depth`) for what a run reports about it. Absent, a
+/// sampled root's layout count only ever shrinks as defenders play, exactly
+/// as before. Early cuts
+/// (already_made(), is_dead(), tier2_dead() above) skip subtrees that are
+/// guaranteed to contribute exactly zero to the result — none of them
+/// change any answer; see `specs/replenished-belief-evaluation.md` for what
+/// makes each sound.
 ///
 /// `state_key` is never called: there is no cache yet.
 auto evaluate(

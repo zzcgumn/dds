@@ -55,6 +55,52 @@ private:
     std::vector<Deal> layouts_;
 };
 
+/// A LayoutSource wrapping another one, counting every at() call made
+/// through it — the count a scan-to-hit or "no wasted scan" test needs,
+/// since scan_budget and the node-local scan's own cost are both defined in
+/// exactly this unit (see RootOptions::scan_budget's own doxygen). at() is
+/// const on the LayoutSource interface, so the counter is mutable; nothing
+/// about counting an at() call needs to observe or change what it returns.
+///
+/// size() is counted too, separately from at() — proving a caller never
+/// queried size() at all (as opposed to querying it and then making zero
+/// at() calls) needs its own counter; scan_for_replenishment's wanted == 0
+/// early return is exactly the case that distinction exists for.
+class CountingLayoutSource : public LayoutSource
+{
+public:
+    explicit CountingLayoutSource(LayoutSource const& wrapped) : wrapped_(wrapped)
+    {
+    }
+
+    auto size() const -> std::optional<std::uint64_t> override
+    {
+        ++size_calls_;
+        return wrapped_.size();
+    }
+
+    auto at(std::uint64_t index) const -> Deal override
+    {
+        ++at_calls_;
+        return wrapped_.at(index);
+    }
+
+    auto at_calls() const -> std::uint64_t
+    {
+        return at_calls_;
+    }
+
+    auto size_calls() const -> std::uint64_t
+    {
+        return size_calls_;
+    }
+
+private:
+    LayoutSource const& wrapped_;
+    mutable std::uint64_t at_calls_ = 0;
+    mutable std::uint64_t size_calls_ = 0;
+};
+
 /// A LayoutSource that cannot report its size — exhaustive evaluation has no
 /// bound to enumerate without one, so this exists purely to test that
 /// rejection.

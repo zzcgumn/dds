@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -17,24 +18,84 @@ namespace dds::belief_evaluation
 /// weight, not any one layout's — it is never combined with `p` into a
 /// single stored `w = kappa * p_i`, so that rescaling `kappa` at a node
 /// moves every layout's weight at once rather than requiring `p` to be
-/// rewritten. `layouts` and `p` stay the same length; that invariant is
-/// relied on wherever the node is read.
+/// rewritten. `layouts`, `p` and `root_keys` stay the same length — a
+/// three-way invariant, not two: every position `i` describes one layout,
+/// its weight, and its identity in root space together, and that invariant
+/// is relied on wherever the node is read.
 struct BeliefNode
 {
     ObservationState state;
-    std::vector<Deal> layouts;   ///< never grows after construction; stable while any BeliefView over it is live
+
+    /// Can grow after construction — a replenishment appends to it — but
+    /// only in one specific window: at node entry in `p_make()`, before any
+    /// cut is evaluated and before any `BeliefView` is built over it. A
+    /// `BeliefEntry` (`belief_view.hpp`) holds `Deal const&` into this
+    /// vector, so growing it while a view is live would dangle every
+    /// reference that view holds; the window above is what keeps that from
+    /// happening, not a coincidence of how views happen to be used today.
+    /// Outside that window — in particular, for the whole lifetime of any
+    /// view built over a node — this is exactly as stable as it always was.
+    std::vector<Deal> layouts;
     std::vector<Probability> p;  ///< parallel to layouts
+
+    /// `layout_key(root-space candidate, (declarer + 1) % DDS_HANDS)` for
+    /// each entry in `layouts`, parallel to it — the layout's identity in
+    /// **root space**, computed once at `make_root` from the candidate
+    /// before any card is played, and carried unchanged from then on. Never
+    /// recomputed from `layouts[i]` itself: two distinct root-space layouts
+    /// that differ only in cards which have since been played replay
+    /// forward to bit-identical node-depth `Deal`s, so a key derived from
+    /// `layouts[i]` at this node would collide where the root-space
+    /// candidates do not. The defender seat is fixed at
+    /// `(declarer + 1) % DDS_HANDS` everywhere this is computed — either
+    /// defender's holding determines the layout, since the other's is the
+    /// pool's complement, but the seat must never vary between one
+    /// computation of a key and another or the same layout would hash
+    /// differently in each.
+    std::vector<std::uint64_t> root_keys;
+
     SampleWeight kappa = 0.0;
 
     /// Whether this node's layouts are a sample of a larger space rather
     /// than the whole of it. Set at construction (`make_root`'s own
     /// doxygen has the exact condition) and propagated to every child in
-    /// both expansion paths — once true anywhere on the path to a node, it
-    /// stays true for that node and everything below it, since a child
-    /// built from a sample can never be more complete than its parent. See
-    /// BeliefView::is_sample, which this feeds, and tier2_dead(), which
-    /// gates on it.
+    /// both expansion paths — a child starts by inheriting its parent's
+    /// value, true or false.
+    ///
+    /// **Not monotone.** A node whose own node-local replenishment scan
+    /// reaches `ScanOutcome::SourceExhausted` sets this back to `false`
+    /// there, whatever the parent's own value was: that node's own scan
+    /// genuinely covered the whole of its path's remaining belief space,
+    /// so it is no longer a sample, regardless of how it was reached. A
+    /// child built from a sample is *not* guaranteed to be less complete
+    /// than its parent — replenishment is exactly the mechanism that can
+    /// make it more complete. The flip never propagates upward: it is a
+    /// fact about this node's own scan, and says nothing about the
+    /// parent's, whose own layout set is still whatever prefix was drawn
+    /// for it. See `BeliefView::is_sample`, which this feeds, and
+    /// `tier2_dead()`, which gates on it.
     bool is_sample = false;
+
+    /// Whether a node-local replenishment scan somewhere on the path to
+    /// this node has already reached `ScanOutcome::SourceExhausted`. A
+    /// **separate** field from `is_sample`, set from the exact same signal
+    /// at the node that exhausted, and propagated to every child in both
+    /// expansion paths the same way -- but the two mean different things,
+    /// and must be able to diverge: `is_sample` is about whether *this*
+    /// node holds everything its own path admits (the fact tier2_dead()'s
+    /// soundness argument needs); this one is about whether *scanning
+    /// again below here* could possibly find anything new. A descendant's
+    /// own history is a strict extension of this node's, so any candidate
+    /// that would match the descendant's history would already have
+    /// matched this node's shorter one too -- which is exactly why a scan
+    /// triggered below an exhausted ancestor is pointless, whatever that
+    /// descendant's own `is_sample` reads. Never cleared once set, for the
+    /// same reason: the source does not change mid-search, so the fact
+    /// stays true for the rest of the path regardless of what else
+    /// happens. Checked by the replenishment trigger before it scans, so
+    /// the recursion pays a full source scan for "still nothing" at most
+    /// once per path rather than once per node below that point.
+    bool no_more_available = false;
 };
 
 /// Why `make_root` could not build a node — `None` when it could.
@@ -137,6 +198,49 @@ struct RootOptions
     /// itself has.
     std::optional<std::uint64_t> scan_budget;
 };
+
+/// The cards already played to `root_layout`'s trick in progress (0..3 of
+/// them), in order — the only prior history recoverable from a `Deal`: once
+/// a trick resolves, `currentTrick*` is cleared and no record of what was
+/// played to it survives, so a root that starts after one or more completed
+/// tricks can never have those tricks reconstructed from `root_layout`
+/// alone. Rank 0 is the empty-slot sentinel, matching `validation.cpp`'s
+/// `led_suit()` and `trick.cpp`'s `played_count()`.
+///
+/// Exposed (rather than kept private to `make_root`, which seeds
+/// `ObservationState::history` from exactly this) because a node-local
+/// replay has to skip precisely this many entries too — the same prefix,
+/// computed the same way, so the two never disagree about where a node's
+/// own history begins versus what was already true of `root_layout` before
+/// this search began.
+auto history_for(Deal const& root_layout) -> PlayTraceBin;
+
+/// The `ObservationState` `make_root` builds at the root, before any layout
+/// is scanned: `trump`/`first` from `root_layout` verbatim, `history` from
+/// `history_for(root_layout)`, `declarer`/`tricks_needed` from the caller,
+/// `tricks_won_by_declarer = 0` (a root always starts fresh -- a trick
+/// already in progress is not a trick already won), `known_holdings` the
+/// declarer/dummy-exact, defender-pooled `Deal` `make_root`'s own doxygen
+/// describes, and `ranks` from it.
+///
+/// Exposed so a node-local replay can rebuild the exact sequence of
+/// intermediate common-knowledge states the original expansion queried a
+/// defender strategy with — advancing from *this*, one recorded card at a
+/// time via `advance_state` (`expand.hpp`), reproduces every intermediate
+/// state bit for bit, since both the state and its advancement are pure
+/// functions of the same inputs the original expansion used. The recursion
+/// itself retains none of these states, so rebuilding from here is the only
+/// way to recover them.
+auto root_observation_state(Deal const& root_layout, int declarer, int tricks_needed) -> ObservationState;
+
+/// Whether `candidate` belongs in the same belief space as `root` -- see
+/// `make_root`'s own doxygen for the exact rule (shared trump/first/
+/// current-trick state, exact declarer and dummy holdings, and the same
+/// outstanding pool per suit split between the two defenders however they
+/// like). `make_root`'s root-level scan and a node-local replenishment scan
+/// both filter on exactly this, so both go through this one function rather
+/// than two copies of the same five-way comparison drifting apart.
+auto is_consistent(Deal const& candidate, Deal const& root, int declarer, int dummy) -> bool;
 
 /// Builds the root node over `source`: scans from index 0 and takes every
 /// layout consistent with `root_layout` (see below), each getting `p_i = 1`,

@@ -4,6 +4,7 @@
 
 #include <belief_evaluation/expand.hpp>
 #include <belief_evaluation/kahan.hpp>
+#include <belief_evaluation/replenishment.hpp>
 #include <belief_evaluation/trick.hpp>
 #include <utility/constants.h>
 
@@ -128,6 +129,40 @@ namespace
         stats.nodes += 1;
     }
 
+    /// replenishment_by_depth's single write site, following
+    /// record_sample_size()'s own pattern -- except there is only **one**
+    /// call site for this one (inside replenish_node(), guarded by the
+    /// same "a scan actually ran" condition that guards everything else
+    /// replenishment does), not two: replenishment never happens at the
+    /// root, so depth 0's entry would only ever be able to record zeros,
+    /// and evaluate()'s own root-handling block has nothing to call this
+    /// with. Left unsaid, the next reader familiar with count_node()'s and
+    /// record_sample_size()'s own two-site pattern would assume this one
+    /// needed a root-block call too, and add one that could only ever add
+    /// zero.
+    auto record_replenishment_attempt(
+        EvaluationCounters* counters,
+        int depth,
+        bool succeeded,
+        std::uint64_t layouts_added,
+        std::uint64_t at_calls) -> void
+    {
+        if (counters == nullptr)
+        {
+            return;
+        }
+        auto const index = static_cast<std::size_t>(depth);
+        if (index >= counters->replenishment_by_depth.size())
+        {
+            counters->replenishment_by_depth.resize(index + 1);
+        }
+        DepthReplenishmentStats& stats = counters->replenishment_by_depth[index];
+        stats.attempted += 1;
+        stats.succeeded += succeeded ? 1 : 0;
+        stats.layouts_added += layouts_added;
+        stats.at_calls += at_calls;
+    }
+
     /// Everything the recursion carries unchanged from the root down to
     /// every node, declarer or defender, sample or exhaustive. Held by
     /// const reference and passed down unmodified at every call --
@@ -144,13 +179,165 @@ namespace
     /// than forcing every level either to copy it into a by-value context
     /// or to pay for a by-const-reference context header just for one
     /// field that changes every call.
+    ///
+    /// `declarer` and `tricks_needed` are deliberately absent too, despite
+    /// being genuinely fixed for the whole recursion: both are already
+    /// reachable at every node through `node.state.declarer` and
+    /// `node.state.tricks_needed` -- common knowledge, identical across
+    /// every layout the node holds. A second path to the same fact would
+    /// let the two drift.
+    ///
+    /// `root_layout` and `source` are both const references to objects
+    /// owned by evaluate()'s caller and outliving the whole recursion --
+    /// SearchContext itself is only ever constructed on evaluate()'s own
+    /// stack and passed down by const reference, never copied or held by
+    /// value anywhere below it.
     struct SearchContext
     {
         DeclarerStrategy const& pi;
         DefenderStrategy const& delta;
         EvaluateOptions const& options;
         EvaluationCounters* counters;  // null unless collecting
+        Deal const& root_layout;
+        LayoutSource const& source;
     };
+
+    /// Tops `node` back up towards `ctx.options.sample_size` from
+    /// `ctx.source` when `node.layouts.size()` is below
+    /// `ctx.options.replenish_below`, rescaling `kappa` so the node's mass
+    /// is unchanged, and setting `is_sample = false` when the scan reaches
+    /// `ScanOutcome::SourceExhausted` -- the node then genuinely holds the
+    /// whole of its own remaining belief space, whether or not that scan
+    /// added anything (see `ScanOutcome`'s own doxygen). Returns
+    /// `std::nullopt` when nothing changes at all -- no threshold set, the
+    /// trigger not met, no `sample_size` to top up to (see
+    /// `EvaluateOptions::replenish_below`'s own doxygen for why that case
+    /// is treated as "nothing to do" rather than an error), or a scan that
+    /// found nothing new *and* did not exhaust the source (bound by the
+    /// budget instead) -- in every one of those cases the caller must fall
+    /// back to using `node` itself unchanged, not a copy of it.
+    ///
+    /// The trigger is `node.layouts.size() < *ctx.options.replenish_below`
+    /// and **nothing else** -- not gated on `node.is_sample`, not on how
+    /// many layouts are already made or dead. See
+    /// `EvaluateOptions::replenish_below`'s own doxygen for why: the rule
+    /// algorithm.md states is that the trigger may depend only on sample
+    /// size or total probability mass, and anything else is a bias smuggled
+    /// into what should be a purely mechanical top-up.
+    ///
+    /// The rescale is algebraically exact: with `E = Sigma p_i` before and
+    /// `E' = Sigma p_i` after (both accumulated the same way `node_mass`
+    /// accumulates, via `KahanAccumulator`), `kappa' = kappa * E / E'`
+    /// gives `kappa' * E' = kappa * E` -- the node's mass is unchanged to
+    /// floating-point tolerance, not merely close. Skipped entirely when
+    /// the scan finds nothing (`E' == E` exactly, so the division would
+    /// otherwise compute 1.0 and multiply by it -- correct in principle,
+    /// but "usually 1.0" is not the same guarantee as "untouched", and this
+    /// is the one case where the difference is worth the branch).
+    ///
+    /// On a `delta` contract violation encountered during the scan,
+    /// `error` is set (through the same `EvaluationError` shape
+    /// `expand_defender_node`'s own errors use, since it is the same
+    /// callback breaking the same contract) and `std::nullopt` is
+    /// returned; the caller must check `error` before falling back to
+    /// `node`, exactly as every other error-reporting call in this
+    /// recursion requires.
+    auto replenish_node(
+        BeliefNode const& node,
+        SearchContext const& ctx,
+        int depth,
+        std::optional<EvaluationError>& error) -> std::optional<BeliefNode>
+    {
+        if (! ctx.options.replenish_below.has_value())
+        {
+            return std::nullopt;
+        }
+        if (! ctx.options.sample_size.has_value())
+        {
+            return std::nullopt;  // no target to top up to -- see this field's own doxygen
+        }
+        if (node.layouts.size() >= *ctx.options.replenish_below)
+        {
+            return std::nullopt;  // trigger not met
+        }
+        if (node.no_more_available)
+        {
+            // A scan somewhere on this path already reached the end of
+            // source and found this node's own narrower history was not
+            // among what survived -- see that field's own doxygen for why
+            // scanning again below here cannot find anything new either.
+            // Checked after the trigger (cheap) but before the scan
+            // (expensive), which is the whole point of carrying it.
+            return std::nullopt;
+        }
+
+        std::uint64_t const target = *ctx.options.sample_size;
+        std::uint64_t const current = static_cast<std::uint64_t>(node.layouts.size());
+        std::uint64_t const wanted = (target > current) ? (target - current) : 0;
+
+        ScanResult const scan =
+            scan_for_replenishment(node, ctx.root_layout, ctx.source, ctx.delta, wanted, ctx.options.scan_budget);
+        record_replenishment_attempt(
+            ctx.counters, depth, ! scan.candidates.empty(), scan.candidates.size(), scan.at_calls);
+        if (scan.error != ValidationError::None)
+        {
+            error =
+                EvaluationError{scan.error, EvaluationCallback::DefenderStrategy, scan.seat, scan.offending_layout};
+            return std::nullopt;
+        }
+        bool const exhausted = scan.outcome == ScanOutcome::SourceExhausted;
+        if (scan.candidates.empty() && ! exhausted)
+        {
+            return std::nullopt;  // the ordinary "nothing more available (yet)" outcome; node is unchanged
+        }
+
+        BeliefNode replenished = node;
+        if (! scan.candidates.empty())
+        {
+            KahanAccumulator mass_before;
+            for (Probability const p_i : replenished.p)
+            {
+                mass_before.add(p_i);
+            }
+
+            for (ScanCandidate const& candidate : scan.candidates)
+            {
+                replenished.layouts.push_back(candidate.layout);
+                replenished.p.push_back(candidate.p_j);
+                replenished.root_keys.push_back(candidate.root_key);
+            }
+
+            KahanAccumulator mass_after;
+            for (Probability const p_i : replenished.p)
+            {
+                mass_after.add(p_i);
+            }
+
+            // See this function's own doxygen for why the "nothing added"
+            // case above returns before ever reaching this division.
+            replenished.kappa *= mass_before.value() / mass_after.value();
+        }
+
+        // The node's own scan reached the end of source: it now holds
+        // every layout its path admits, exactly as make_root's root-level
+        // scan does when it runs to completion. Not a refinement of
+        // tier2_dead()'s gate -- that stays exactly !node.is_sample, no
+        // floor -- this only lets a node report the flag honestly once it
+        // genuinely holds the whole of its own remaining space. Does not
+        // propagate upward: a child's own exhaustion says nothing about
+        // its parent, whose own layout set is still whatever prefix was
+        // drawn for it.
+        //
+        // no_more_available is set from this exact same signal -- see its
+        // own doxygen for why it is nonetheless a separate field from
+        // is_sample, not a second name for the same fact.
+        if (exhausted)
+        {
+            replenished.is_sample = false;
+            replenished.no_more_available = true;
+        }
+        return replenished;
+    }
 
     /// The recursion: P_make(node) = terminal_value(node), or the sum (for
     /// a defender node) / the single value (for a declarer node) over its
@@ -185,25 +372,42 @@ namespace
             return 0.0;
         }
         count_node(ctx.counters);
-        record_sample_size(ctx.counters, node, depth);
-        if (already_made(node.state))
+
+        // Replenishment fires here: at node entry, before every cut below
+        // and before is_terminal()/expansion -- in particular before any
+        // BeliefView could be built (expand_declarer_node is the only place
+        // one is, and it has not been reached yet). See replenish_node's
+        // own doxygen for why this ordering is a stated constraint the rest
+        // of the module leans on, not an incidental choice. Absent
+        // options.replenish_below, replenish_node returns nullopt having
+        // touched nothing, so this costs one function call and nothing
+        // else on the path every existing test still takes.
+        std::optional<BeliefNode> const replenished = replenish_node(node, ctx, depth, error);
+        if (error.has_value())
+        {
+            return 0.0;
+        }
+        BeliefNode const& n = replenished.has_value() ? *replenished : node;
+
+        record_sample_size(ctx.counters, n, depth);
+        if (already_made(n.state))
         {
             count_tier1_made_cut(ctx.counters);
-            return node_mass(node);
+            return node_mass(n);
         }
-        if (is_dead(node.state))
+        if (is_dead(n.state))
         {
             count_tier1_dead_cut(ctx.counters);
-            return 0.0;  // node_mass(node) discarded here, not conserved -- the contract fails in
+            return 0.0;  // node_mass(n) discarded here, not conserved -- the contract fails in
                           // every layout this node holds, whatever happens next
         }
-        if (tier2_dead(node, ctx.options))
+        if (tier2_dead(n, ctx.options))
         {
             count_tier2_cut(ctx.counters);
             return 0.0;  // same non-conservation as tier 1's dead cut above -- see its own comment
         }
-        // is_terminal(node) is never true here, not just its "made" branch: a
-        // terminal node has tricks_remaining(node.state) == 0, and at that
+        // is_terminal(n) is never true here, not just its "made" branch: a
+        // terminal node has tricks_remaining(n.state) == 0, and at that
         // point already_made() and is_dead() are exact logical complements
         // (tricks_won >= needed vs. tricks_won + 0 < needed), so one of the
         // two tier-1 checks above has already returned before this line could
@@ -215,26 +419,26 @@ namespace
         // used elsewhere (direct construction in terminal_test.cpp, per their
         // own doxygen); this is only about the two call sites inside the
         // recursion.
-        if (is_terminal(node))
+        if (is_terminal(n))
         {
-            return terminal_value(node);
+            return terminal_value(n);
         }
 
-        int const seat = seat_on_play(node.state.known_holdings);
+        int const seat = seat_on_play(n.state.known_holdings);
 
-        if (is_declarer_side(node.state, seat))
+        if (is_declarer_side(n.state, seat))
         {
-            ExpandResult const result = expand_declarer_node(node, ctx.pi);
+            ExpandResult const result = expand_declarer_node(n, ctx.pi);
             if (! result.child.has_value())
             {
                 error = EvaluationError{
-                    result.error, EvaluationCallback::DeclarerPlay, seat, node.state.known_holdings};
+                    result.error, EvaluationCallback::DeclarerPlay, seat, n.state.known_holdings};
                 return 0.0;
             }
             return p_make(*result.child, ctx, depth + 1, error);
         }
 
-        ExpandDefenderResult const result = expand_defender_node(node, ctx.delta);
+        ExpandDefenderResult const result = expand_defender_node(n, ctx.delta);
         if (! result.children.has_value())
         {
             error = EvaluationError{
@@ -278,10 +482,12 @@ auto tier2_dead(BeliefNode const& node, EvaluateOptions const& options) -> bool
     // says nothing about every layout in the true space, so a layout that
     // would have made could simply not have been drawn. Once a root sample
     // size is requested and actually binds, is_sample propagates true to
-    // every descendant through both expansion paths, switching this cut
-    // off across the whole tree from that point on -- stricter than
-    // algorithm.md, which forbids the cut only at or below a replenishment
-    // floor this evaluator does not yet have.
+    // every descendant through both expansion paths, switching this cut off
+    // from there down -- except at a node whose own replenishment scan
+    // exhausts source, which sets is_sample back to false there (see that
+    // field's own doxygen) and re-engages this exact same gate, honestly:
+    // such a node genuinely holds the whole of its own remaining space, not
+    // a floor-based exception to what this function checks.
     if (node.is_sample)
     {
         return false;
@@ -335,7 +541,7 @@ auto evaluate(
     // sites below are unconditional and cost nothing when off — count_node()
     // itself is the single place that checks the flag (via nullness).
     EvaluationCounters* const counters_ptr = options.collect_counters ? &counters : nullptr;
-    SearchContext const ctx{pi, delta, options, counters_ptr};
+    SearchContext const ctx{pi, delta, options, counters_ptr, root_layout, source};
 
     // The root's own visit — same site p_make() counts a node at, but
     // outside p_make() because the root's dispatch happens here rather than
