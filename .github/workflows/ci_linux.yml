@@ -103,7 +103,17 @@ jobs:
       - name: Build with scheduler define
         run: bazelisk build --define=scheduler=true --verbose_failures //library/src:dds
 
-      # 11 Upload test logs
+      # 11 Build and test belief_evaluation optimised (--config=opt, i.e. -c opt
+      #    plus -DNDEBUG). Its own module, not folded into step 6️⃣/8️⃣'s //...:
+      #    an optimised build has never covered this module until now, and
+      #    nothing else in this workflow exercises --config=opt on Linux.
+      - name: Build belief_evaluation (optimised)
+        run: bazelisk build --config=opt --verbose_failures //library/src/belief_evaluation
+
+      - name: Test belief_evaluation (optimised)
+        run: bazelisk test --config=opt --verbose_failures --test_output=errors //library/tests/belief_evaluation/...
+
+      # 12 Upload test logs
       - name: Upload test logs - Linux
         if: always()
         uses: actions/upload-artifact@v6
