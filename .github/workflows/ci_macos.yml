@@ -49,6 +49,16 @@ jobs:
       - name: Run all tests
         run: bazelisk test --verbose_failures //...
 
+      # Build and test belief_evaluation optimised (--config=opt, i.e. -c opt
+      # plus -DNDEBUG). This is the one platform that also carries ThinLTO
+      # (-flto=thin in both DDS_CPPOPTS and DDS_LINKOPTS' macOS branches), a
+      # combination this module had never been built under until now.
+      - name: Build belief_evaluation (optimised)
+        run: bazelisk build --config=opt --verbose_failures //library/src/belief_evaluation
+
+      - name: Test belief_evaluation (optimised)
+        run: bazelisk test --config=opt --verbose_failures --test_output=errors //library/tests/belief_evaluation/...
+
       # .NET binding — this job is the only CI coverage of the AArch64 ABI, which
       # is what the managed struct-layout tests exist to guard: a layout mismatch
       # there corrupts results silently rather than throwing. Linux covers SysV
