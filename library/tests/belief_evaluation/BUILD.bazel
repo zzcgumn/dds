@@ -7,6 +7,7 @@ cc_test(
     srcs = [
         "aggr_invariance_test.cpp",
         "belief_view_test.cpp",
+        "constrained_decomposition_test.cpp",
         "counters_test.cpp",
         "cuts_test.cpp",
         "declarer_node_test.cpp",
@@ -14,6 +15,7 @@ cc_test(
         "defender_split_test.cpp",
         "evaluate_test.cpp",
         "fixture_validation_test.cpp",
+        "history_verification_test.cpp",
         "kahan_test.cpp",
         "keyed_permutation_test.cpp",
         "layout_key_test.cpp",
@@ -33,9 +35,11 @@ cc_test(
         "terminal_test.cpp",
         "test_support.hpp",
         "trick_test.cpp",
+        "two_way_experiment_test.cpp",
         "unconstrained_layout_source_integration_test.cpp",
         "unconstrained_layout_source_test.cpp",
         "validation_test.cpp",
+        "void_derivation_test.cpp",
     ],
     deps = [
         "//library/src/belief_evaluation",
