@@ -23,29 +23,6 @@ pybind_extension(
     visibility = ["//visibility:public"],
 )
 
-# Compile-only: proves bindings.cpp's own include set (mirrored verbatim in
-# the one source below, including converters.hpp -- declarations only, never
-# called, so converters.cpp need not be a source here too) still compiles
-# alongside belief_evaluation's public headers, now that the module is
-# namespaced. Not part of the real extension above -- deliberately a
-# separate target so a probe never ships in the actual Python package, and
-# so this stays easy to remove once the real bindings are written and this
-# claim is proven a different way.
-pybind_extension(
-    name = "_binding_headers_probe",
-    testonly = True,
-    srcs = [
-        "src/binding_headers_probe.cpp",
-        "src/converters.hpp",
-    ],
-    copts = DDS_CPPOPTS,
-    deps = [
-        "//library/src:dds",
-        "//library/src/belief_evaluation",
-    ],
-    visibility = ["//visibility:private"],
-)
-
 pybind_extension(
     name = "_belief_space_local_evaluation",
     srcs = [
@@ -284,6 +261,17 @@ py_test(
     size = "small",
     main = "tests/test_belief_space_local_evaluation_solver.py",
     srcs = ["tests/test_belief_space_local_evaluation_solver.py"],
+    deps = [
+        ":belief_space_local_evaluation_lib",
+        ":dds3_lib",
+    ],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_docs_examples_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_docs_examples.py",
+    srcs = ["tests/test_belief_space_local_evaluation_docs_examples.py"],
     deps = [
         ":belief_space_local_evaluation_lib",
         ":dds3_lib",
