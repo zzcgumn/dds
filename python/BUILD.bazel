@@ -280,6 +280,14 @@ py_test(
 )
 
 py_test(
+    name = "belief_space_local_evaluation_layout_source_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_layout_source.py",
+    srcs = ["tests/test_belief_space_local_evaluation_layout_source.py"],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
     name = "calc_par_test",
     size = "small",
     main = "tests/test_calc_par_simple.py",
