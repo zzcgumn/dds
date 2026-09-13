@@ -44,9 +44,19 @@ pybind_extension(
     name = "_belief_space_local_evaluation",
     srcs = [
         "src/belief_space_local_evaluation.cpp",
+        "src/converters.cpp",
+        "src/converters.hpp",
     ],
     copts = DDS_CPPOPTS,
     deps = [
+        # converters.hpp's own #include <dds/dds.hpp> (needed for the many
+        # dds3-specific types its other functions convert) is what pulls
+        # this in -- reusing dict_to_deal costs the same dependency dds3's
+        # own extension already carries. This is not the solver *seam*
+        # (SolverContext, DoubleDummyDefender/Bound) that stays out until
+        # the solver seam task; it is the price of one shared converter
+        # module rather than a second dict-to-Deal implementation.
+        "//library/src:dds",
         "//library/src/belief_evaluation",
     ],
     visibility = ["//visibility:public"],
@@ -196,6 +206,14 @@ py_test(
     size = "small",
     main = "tests/test_belief_space_local_evaluation_import.py",
     srcs = ["tests/test_belief_space_local_evaluation_import.py"],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_conversions_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_conversions.py",
+    srcs = ["tests/test_belief_space_local_evaluation_conversions.py"],
     deps = [":belief_space_local_evaluation_lib"],
 )
 
