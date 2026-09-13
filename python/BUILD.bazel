@@ -353,6 +353,18 @@ py_test(
 )
 
 py_test(
+    name = "belief_space_local_evaluation_parity_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_parity.py",
+    srcs = ["tests/test_belief_space_local_evaluation_parity.py"],
+    data = [
+        "//.github/workflows:all_workflows",  # _repo_root's own marker
+        "//library/tests/belief_evaluation:parity_reference",
+    ],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
     name = "calc_par_test",
     size = "small",
     main = "tests/test_calc_par_simple.py",
