@@ -489,29 +489,19 @@ namespace
     }
 }  // namespace
 
-// Dict out for the whole result, matching this file's existing idiom (see
-// this function's own doxygen in converters.hpp for why the direction
-// matters here and not for a Deal or an ObservationState). Value and
-// error are mutually exclusive on the C++ type (EvaluationResult::error's
-// own doxygen: "meaningful only when by_strategy is empty") and stay that
-// way here: exactly one of "by_strategy" or "error" is ever present on
-// the returned dict, never both and never neither.
+// Dict out for a *successful* result, matching this file's existing idiom
+// (see this function's own doxygen in converters.hpp for why the
+// direction matters here and not for a Deal or an ObservationState).
+// EvaluationResult::error is not represented here at all: the evaluate()
+// binding that is this function's only caller raises before ever
+// reaching this call when result.error is set (every RootFailure and
+// every ValidationError cause raises a distinguishable exception, rather
+// than the evaluator's own "reported, not thrown" posture surviving
+// unchanged all the way to the Python boundary) -- so by_strategy is
+// always populated by the time this runs.
 auto evaluation_result_to_dict(const be::EvaluationResult& result) -> py::dict
 {
     py::dict out;
-
-    if (result.error.has_value()) {
-        const be::EvaluationError& error = *result.error;
-        py::dict error_dict;
-        error_dict["validation"] = error.validation;
-        error_dict["callback"] = error.callback;
-        error_dict["seat"] = error.seat;
-        error_dict["layout"] = deal_to_dict(error.layout);
-        error_dict["root_failure"] = error.root_failure;
-        out["error"] = error_dict;
-        return out;
-    }
-
     py::dict by_strategy;
     for (const auto& [id, value] : result.by_strategy) {
         py::dict entry;
