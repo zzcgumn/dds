@@ -93,12 +93,20 @@ pybind_extension(
         # converters.hpp's own #include <dds/dds.hpp> (needed for the many
         # dds3-specific types its other functions convert) is what pulls
         # this in -- reusing dict_to_deal costs the same dependency dds3's
-        # own extension already carries. This is not the solver *seam*
-        # (SolverContext, DoubleDummyDefender/Bound) that stays out until
-        # the solver seam task; it is the price of one shared converter
-        # module rather than a second dict-to-Deal implementation.
+        # own extension already carries. Distinct from the solver-linked
+        # deps just below: this one is the price of one shared converters
+        # module rather than a second dict-to-Deal implementation, not
+        # about DoubleDummyDefender/Bound at all.
         "//library/src:dds",
         "//library/src/belief_evaluation",
+        # The solver seam: DoubleDummyDefender and DoubleDummyBound, both
+        # solver-linked (unlike the rest of this extension). SolverContext
+        # itself is never registered here -- dds3 keeps that registration
+        # (see belief_space_local_evaluation.cpp's own comment on the
+        # cross-module pattern) -- so no dep on dds3's own BUILD target is
+        # needed for that; these two are what actually need the solver.
+        "//library/src/belief_evaluation:double_dummy_bound",
+        "//library/src/belief_evaluation:double_dummy_defender",
     ],
     visibility = ["//visibility:public"],
 )
@@ -331,6 +339,17 @@ py_test(
     main = "tests/test_belief_space_local_evaluation_errors.py",
     srcs = ["tests/test_belief_space_local_evaluation_errors.py"],
     deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_solver_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_solver.py",
+    srcs = ["tests/test_belief_space_local_evaluation_solver.py"],
+    deps = [
+        ":belief_space_local_evaluation_lib",
+        ":dds3_lib",
+    ],
 )
 
 py_test(
