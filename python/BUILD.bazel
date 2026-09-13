@@ -48,6 +48,12 @@ pybind_extension(
     copts = DDS_CPPOPTS,
     deps = [
         "//library/src:dds",
+        # converters.hpp's own #include <belief_evaluation/evaluate.hpp>,
+        # for converters.cpp's evaluation_result_to_dict -- unused here
+        # (bindings.cpp never calls it), but converters is one shared file
+        # for both extensions, not duplicated, so this extension compiles
+        # the same translation unit the other one actually calls it from.
+        "//library/src/belief_evaluation",
     ],
     visibility = ["//visibility:public"],
 )
@@ -308,6 +314,14 @@ py_test(
     size = "small",
     main = "tests/test_belief_space_local_evaluation_evaluate.py",
     srcs = ["tests/test_belief_space_local_evaluation_evaluate.py"],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_results_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_results.py",
+    srcs = ["tests/test_belief_space_local_evaluation_results.py"],
     deps = [":belief_space_local_evaluation_lib"],
 )
 
