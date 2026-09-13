@@ -4,6 +4,11 @@
 
 The DDS (Double Dummy Solver) library provides a Python interface for analyzing bridge hands using the double-dummy solver. This interface allows you to calculate trick distribution, par scores, and other double-dummy analysis from Python.
 
+For evaluating a declarer strategy against a defender strategy over a belief
+space of plausible layouts — a separate capability, its own
+`belief_space_local_evaluation` import — see
+[`docs/belief_space_local_evaluation.md`](belief_space_local_evaluation.md).
+
 ## Building the Python Interface
 
 ### Prerequisites
