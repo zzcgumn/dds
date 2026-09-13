@@ -40,6 +40,18 @@ pybind_extension(
     visibility = ["//visibility:private"],
 )
 
+pybind_extension(
+    name = "_belief_space_local_evaluation",
+    srcs = [
+        "src/belief_space_local_evaluation.cpp",
+    ],
+    copts = DDS_CPPOPTS,
+    deps = [
+        "//library/src/belief_evaluation",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 # Copy the extension into the dds3 package directory with the platform-specific
 # filename Python expects for native modules.
 genrule(
@@ -70,6 +82,41 @@ py_library(
     srcs = ["dds3/__init__.py"],
     data = [":_dds3_in_package"],
     imports = ["."],
+    visibility = ["//visibility:public"],
+)
+
+# Copy the extension into the belief_space_local_evaluation package
+# directory with the platform-specific filename Python expects for native
+# modules -- mirrors the dds3 genrule pair above exactly.
+genrule(
+    name = "_belief_space_local_evaluation_in_package_unix",
+    srcs = [":_belief_space_local_evaluation"],
+    outs = ["belief_space_local_evaluation/_belief_space_local_evaluation.so"],
+    cmd = "cp \"$(location :_belief_space_local_evaluation)\" \"$@\"",
+)
+
+genrule(
+    name = "_belief_space_local_evaluation_in_package_windows",
+    srcs = [":_belief_space_local_evaluation"],
+    outs = ["belief_space_local_evaluation/_belief_space_local_evaluation.pyd"],
+    cmd = "cp \"$(location :_belief_space_local_evaluation)\" \"$@\"",
+    cmd_bat = "copy /Y \"$(location :_belief_space_local_evaluation)\" \"$@\"",
+)
+
+alias(
+    name = "_belief_space_local_evaluation_in_package",
+    actual = select({
+        "//:build_windows": ":_belief_space_local_evaluation_in_package_windows",
+        "//conditions:default": ":_belief_space_local_evaluation_in_package_unix",
+    }),
+)
+
+py_library(
+    name = "belief_space_local_evaluation_lib",
+    srcs = ["belief_space_local_evaluation/__init__.py"],
+    data = [":_belief_space_local_evaluation_in_package"],
+    imports = ["."],
+    deps = [":dds3_lib"],
     visibility = ["//visibility:public"],
 )
 
@@ -142,6 +189,14 @@ py_test(
     main = "tests/test_import.py",
     srcs = ["tests/test_import.py"],
     deps = [":dds3_lib"],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_import_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_import.py",
+    srcs = ["tests/test_belief_space_local_evaluation_import.py"],
+    deps = [":belief_space_local_evaluation_lib"],
 )
 
 py_test(
@@ -239,11 +294,21 @@ py_test(
     ],
 )
 
+# One wheel, two top-level imports (dds3 and belief_space_local_evaluation):
+# both extensions link the same static library, so two wheels would
+# duplicate it on disk and double the install step for a caller who wants
+# both. A separate distribution would only earn its keep if this capability
+# needed to version independently of dds3, and nothing suggests it will.
 py_wheel(
     name = "dds3_wheel",
     distribution = "dds3",
     version = "1.0.0",
-    deps = [":dds3_lib", ":_dds3_in_package"],
+    deps = [
+        ":belief_space_local_evaluation_lib",
+        ":dds3_lib",
+        ":_belief_space_local_evaluation_in_package",
+        ":_dds3_in_package",
+    ],
     strip_path_prefixes = ["python/"],
     entry_points = {},
 )
