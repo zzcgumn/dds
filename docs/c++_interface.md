@@ -9,6 +9,11 @@ DDS provides a modernized C++ interface built around instance-scoped solver stat
 
 The modern API is designed to preserve existing solver behavior while improving ownership, lifecycle control, and composability in C++ applications.
 
+For evaluating a declarer strategy against a defender strategy over a belief
+space of plausible layouts — a separate capability, under
+`dds::belief_evaluation` — see
+[`docs/belief_space_local_evaluation.md`](belief_space_local_evaluation.md).
+
 ## Design Goals
 
 The modern C++ interface emphasizes:
