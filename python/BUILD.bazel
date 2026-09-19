@@ -290,6 +290,34 @@ py_test(
     deps = [":belief_space_local_evaluation_lib"],
 )
 
+# The correctness this plan's own Python-vs-C++ cost comparison
+# (benchmarks/python_cost/) depends on: the Python port of
+# real_work_declarer_play (benchmarks/python_cost/strategies.hpp) agrees
+# with its own C++ original on a hand-derived case, independently worked
+# on each side (safety_score_declarer_play_test.cpp's own header comment
+# explains why that is safe here). No C++ data dependency -- this proves
+# the scoring rule itself, not the evaluator wiring, which the parity test
+# above already covers.
+py_test(
+    name = "belief_space_local_evaluation_python_cost_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_python_cost.py",
+    srcs = ["tests/test_belief_space_local_evaluation_python_cost.py"],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
+py_test(
+    name = "belief_space_local_evaluation_fixture_ladder_test",
+    size = "small",
+    main = "tests/test_belief_space_local_evaluation_fixture_ladder.py",
+    srcs = ["tests/test_belief_space_local_evaluation_fixture_ladder.py"],
+    data = [
+        "//.github/workflows:all_workflows",  # _repo_root's own marker
+        "//benchmarks/belief_evaluation:ladder_reference",
+    ],
+    deps = [":belief_space_local_evaluation_lib"],
+)
+
 py_test(
     name = "calc_par_test",
     size = "small",
