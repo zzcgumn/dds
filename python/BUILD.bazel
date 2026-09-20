@@ -48,12 +48,6 @@ pybind_extension(
     copts = DDS_CPPOPTS,
     deps = [
         "//library/src:dds",
-        # converters.hpp's own #include <belief_evaluation/evaluate.hpp>,
-        # for converters.cpp's evaluation_result_to_dict -- unused here
-        # (bindings.cpp never calls it), but converters is one shared file
-        # for both extensions, not duplicated, so this extension compiles
-        # the same translation unit the other one actually calls it from.
-        "//library/src/belief_evaluation",
     ],
     visibility = ["//visibility:public"],
 )
@@ -61,6 +55,8 @@ pybind_extension(
 pybind_extension(
     name = "_belief_space_local_evaluation",
     srcs = [
+        "src/belief_converters.cpp",
+        "src/belief_converters.hpp",
         "src/belief_space_local_evaluation.cpp",
         "src/converters.cpp",
         "src/converters.hpp",
@@ -71,8 +67,8 @@ pybind_extension(
         # dds3-specific types its other functions convert) is what pulls
         # this in -- reusing dict_to_deal costs the same dependency dds3's
         # own extension already carries. Distinct from the solver-linked
-        # deps just below: this one is the price of one shared converters
-        # module rather than a second dict-to-Deal implementation, not
+        # deps just below: this one is the price of sharing converters
+        # rather than writing a second dict-to-Deal implementation, not
         # about DoubleDummyDefender/Bound at all.
         "//library/src:dds",
         "//library/src/belief_evaluation",

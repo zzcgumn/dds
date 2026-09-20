@@ -7,8 +7,6 @@
 
 #include <dds/dds.hpp>
 
-#include <belief_evaluation/evaluate.hpp>
-
 namespace dds3_python
 {
 
@@ -47,15 +45,5 @@ auto list_to_dd_table_deals_pbn(
 auto dd_tables_res_to_list(const DdTablesRes& tables_res, int num_tables) -> pybind11::list;
 
 auto all_par_results_to_list(const AllParResults& all_par_results, int num_tables) -> pybind11::list;
-
-// dict out, matching this file's own existing idiom -- unlike
-// ObservationState or BeliefView (bound as read-only classes, since they
-// are handed *to* a callback and materialising a dict per call would be
-// the belief-set-copy cost those bindings exist to avoid), an
-// EvaluationResult is handed *out*, once, at the end of one evaluate()
-// call: no per-call cost to avoid, and a caller of the existing bindings
-// already expects a dict back. Never constructed by a caller, so no
-// matching dict_to_* exists or is needed.
-auto evaluation_result_to_dict(const dds::belief_evaluation::EvaluationResult& result) -> pybind11::dict;
 
 }  // namespace dds3_python
